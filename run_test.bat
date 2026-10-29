@@ -1,7 +1,7 @@
-@echo off
+﻿@echo off
 chcp 65001 > nul
 echo ===================================================
-echo   BIEN DICH VA CHAY HE THONG (BORROW / RETURN APP)
+echo   KHOI CHAY HE THONG QUAN LY THU VIEN (BORROW / RETURN APP)
 echo ===================================================
 
 if not exist "backend\bin" mkdir backend\bin
