@@ -1,6 +1,7 @@
-# TÀI LIỆU QUY ƯỚC DỮ LIỆU, API CONTRACT & PHÂN CÔNG DỰ ÁN
+﻿# TÀI LIỆU QUY ƯỚC DỮ LIỆU, API CONTRACT & PHÂN CÔNG DỰ ÁN
 **Hệ thống Quản lý Thư viện (Library Management System)**  
 *Dành cho nhóm phát triển 5 thành viên - Đính kèm Báo cáo cuối kỳ*
+*Cập nhật: Hoàn thiện nghiệp vụ mượn trả sách, chính sách phạt và đăng nhập thủ thư*
 
 ---
 

@@ -1,4 +1,4 @@
-package main;
+﻿package main;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -20,7 +20,7 @@ import java.util.List;
 
 /**
  * Lớp khởi chạy hệ thống (Main Server & Test Runner).
- * Trưởng nhóm phụ trách điều phối, ghép hệ thống và mở cổng kết nối API.
+ * Khởi chạy hệ thống, ghép nối API và phục vụ giao diện người dùng.
  */
 public class Main {
 
