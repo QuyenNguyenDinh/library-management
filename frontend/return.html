@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thư viện - Nghiệp vụ Trả Sách</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card-custom { border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); }
+        .header-bg { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#"><i class="bi bi-book-half me-2"></i>QUẢN LÝ THƯ VIỆN</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link text-white-50" href="borrow.html"><i class="bi bi-box-arrow-right me-1"></i>Mượn Sách</a></li>
+                    <li class="nav-item"><a class="nav-link active fw-semibold" href="return.html"><i class="bi bi-box-arrow-in-left me-1"></i>Trả Sách</a></li>
+                    <li class="nav-item"><a class="nav-link text-white-50" href="login.html"><i class="bi bi-shield-lock me-1"></i>Thủ Thư</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-7">
+                <div class="card card-custom p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="p-3 bg-success bg-opacity-10 text-success rounded-3 me-3">
+                            <i class="bi bi-arrow-return-left fs-3"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-1 fw-bold text-dark">Xác Nhận Trả Sách</h4>
+                            <p class="text-muted mb-0 small">Hoàn lại tồn kho, tự động tính phí phạt quá hạn (FinePolicy)</p>
+                        </div>
+                    </div>
+                    <hr>
+
+                    <form id="returnForm">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Mã Phiếu Mượn <span class="text-danger">*</span></label>
+                            <input type="text" id="ticketId" class="form-control" placeholder="VD: TK001, TK002" required>
+                            <div class="form-text">Phiếu phải ở trạng thái "Đang mượn" (Hệ thống chặn tuyệt đối trả lại phiếu đã trả).</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Ngày trả thực tế (Demo quá hạn)</label>
+                            <input type="date" id="returnDate" class="form-control" required>
+                            <div class="form-text">Có thể chọn ngày trong tương lai so với hạn trả để demo tính tiền phạt.</div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-top d-flex gap-2">
+                            <button type="submit" class="btn btn-success px-4 fw-semibold" id="submitBtn">
+                                <i class="bi bi-check2-circle me-1"></i>Xác nhận Trả Sách & Tính Phạt
+                            </button>
+                            <button type="reset" class="btn btn-light px-3">Làm lại</button>
+                        </div>
+                    </form>
+
+                    <!-- Alert message box -->
+                    <div id="resultBox" class="mt-4" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = "http://localhost:8080/api";
+
+        // Mặc định ngày hôm nay
+        document.getElementById('returnDate').value = new Date().toISOString().split('T')[0];
+
+        // Xử lý gửi form trả sách
+        document.getElementById('returnForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const resultBox = document.getElementById('resultBox');
+            const submitBtn = document.getElementById('submitBtn');
+
+            const ticketId = document.getElementById('ticketId').value.trim();
+            const returnDate = document.getElementById('returnDate').value;
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang xử lý...';
+
+            try {
+                const response = await fetch(`${API_BASE}/return/${ticketId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ticketId: ticketId,
+                        returnDate: returnDate
+                    })
+                });
+
+                const resData = await response.json();
+                resultBox.style.display = 'block';
+
+                if (response.ok && resData.success) {
+                    const data = resData.data;
+                    const fineBadge = data.fineAmount > 0 
+                        ? `<span class="badge bg-danger fs-6">${data.fineAmount.toLocaleString('vi-VN')} VNĐ</span> (Quá hạn ${data.overdueDays} ngày)`
+                        : `<span class="badge bg-success fs-6">0 VNĐ (Đúng hạn)</span>`;
+
+                    resultBox.className = 'alert alert-success mt-4 p-3 border-0 shadow-sm';
+                    resultBox.innerHTML = `
+                        <h6 class="alert-heading fw-bold"><i class="bi bi-check-circle-fill me-2"></i>Trả sách thành công!</h6>
+                        <p class="mb-1"><strong>Mã bản ghi trả:</strong> <span class="badge bg-primary">${data.recordId}</span> | <strong>Mã phiếu:</strong> ${data.ticketId}</p>
+                        <p class="mb-1"><strong>Ngày trả thực tế:</strong> ${data.returnDate}</p>
+                        <p class="mb-1"><strong>Tiền phạt:</strong> ${fineBadge}</p>
+                        <div class="p-2 bg-white rounded border small mt-2 text-secondary">
+                            <i class="bi bi-info-circle me-1"></i>${data.note}
+                        </div>
+                    `;
+                } else {
+                    resultBox.className = 'alert alert-danger mt-4 p-3 border-0 shadow-sm';
+                    resultBox.innerHTML = `
+                        <h6 class="alert-heading fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Trả sách thất bại!</h6>
+                        <p class="mb-0">${resData.message || 'Không thể thực hiện trả sách.'}</p>
+                    `;
+                }
+            } catch (err) {
+                resultBox.style.display = 'block';
+                resultBox.className = 'alert alert-warning mt-4 p-3 border-0 shadow-sm';
+                resultBox.innerHTML = `<strong>Lỗi kết nối:</strong> Không thể kết nối tới Backend tại ${API_BASE}. Hãy chắc chắn Server Java đang chạy!`;
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check2-circle me-1"></i>Xác nhận Trả Sách & Tính Phạt';
+            }
+        });
+    </script>
+</body>
+</html>
+

@@ -1,16 +1,15 @@
 package model;
 
 /**
- * Định nghĩa các loại Bạn đọc trong thư viện.
+ * Định nghĩa trạng thái của Phiếu mượn.
  */
-public enum ReaderType {
-    NORMAL_STUDENT("Sinh viên thường"),
-    PRIORITY_STUDENT("Sinh viên ưu tiên"),
-    LECTURER("Giảng viên");
+public enum TicketStatus {
+    BORROWING("Đang mượn"),
+    RETURNED("Đã trả");
 
     private final String description;
 
-    ReaderType(String description) {
+    TicketStatus(String description) {
         this.description = description;
     }
 
@@ -23,3 +22,4 @@ public enum ReaderType {
         return description;
     }
 }
+

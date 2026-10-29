@@ -31,3 +31,4 @@ public class LecturerFinePolicy implements FinePolicy {
         return POLICY_NAME;
     }
 }
+
