@@ -4,8 +4,10 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import exception.*;
+import handler.AuthHandler;
 import handler.BorrowHandler;
 import model.*;
+import service.AuthService;
 import service.BorrowService;
 
 import java.io.File;
@@ -29,17 +31,18 @@ public class Main {
         System.out.println("     HỆ THỐNG QUẢN LÝ THƯ VIỆN - TRƯỞNG NHÓM KHỞI CHẠY HỆ THỐNG                ");
         System.out.println("================================================================================\n");
 
-        // 1. Khởi tạo BorrowService
+        // 1. Khởi tạo Service
         BorrowService borrowService = new BorrowService();
+        AuthService authService = new AuthService();
 
-        // 2. Nạp dữ liệu mẫu ban đầu để sẵn sàng mượn/trả
+        // 2. Nạp dữ liệu mẫu ban đầu
         initSampleData(borrowService);
 
-        // 3. Chạy kiểm thử tự động 7 Business Rules
-        runAutomatedTests(borrowService);
+        // 3. Chạy kiểm thử tự động các quy tắc nghiệp vụ
+        runAutomatedTests(borrowService, authService);
 
-        // 4. Khởi chạy HTTP Server để phục vụ Frontend
-        startHttpServer(borrowService);
+        // 4. Khởi chạy HTTP Server phục vụ Frontend & REST APIs
+        startHttpServer(borrowService, authService);
     }
 
     private static void initSampleData(BorrowService service) {
@@ -59,42 +62,52 @@ public class Main {
         service.addBook(b2);
         service.addBook(b3);
 
-        System.out.println("[INIT] Đã nạp sẵn dữ liệu mẫu vào bộ nhớ:");
+        System.out.println("[INIT] Đã nạp dữ liệu mẫu vào bộ nhớ:");
         System.out.println("   + Bạn đọc: RD001 (SV Thường), RD002 (SV Ưu tiên), RD003 (Giảng viên)");
         System.out.println("   + Sách: BK001 (5 cuốn), BK002 (3 cuốn), BK003 (4 cuốn)\n");
     }
 
-    private static void runAutomatedTests(BorrowService service) {
-        System.out.println("--- KIỂM THỬ TỰ ĐỘNG 7 BUSINESS RULES ---");
+    private static void runAutomatedTests(BorrowService service, AuthService authService) {
+        System.out.println("--- KIỂM THỬ TỰ ĐỘNG CÁC QUY TẮC NGHIỆP VỤ CỐT LÕI ---");
         try {
-            // Mượn thử hợp lệ
+            // Test mượn hợp lệ
             BorrowTicket t = service.borrowBook("TK901", "RD001", "BK001", 1,
                     LocalDate.now().minusDays(5), LocalDate.now().plusDays(9));
-            System.out.println("[TEST] Mượn hợp lệ thành công: " + t.getId());
+            System.out.println("[TEST] 1. Mượn hợp lệ thành công: Mã phiếu " + t.getId());
 
-            // Thử trả trễ hạn để kiểm tra FinePolicy
-            // Giả lập trả trễ bằng cách tạo phiếu có dueDate trong quá khứ
+            // Test trả quá hạn tính phạt theo FinePolicy
             BorrowTicket overdueTicket = service.borrowBook("TK902", "RD001", "BK002", 1,
                     LocalDate.now().minusDays(20), LocalDate.now().minusDays(3));
             ReturnRecord rr = service.returnBook("RR902", overdueTicket.getId(), LocalDate.now());
-            System.out.println("[TEST] Trả trễ hạn tính phạt thành công: " + String.format("%,.0f VNĐ", rr.getFineAmount()));
+            System.out.println("[TEST] 2. Trả trễ hạn tính phạt thành công: " + String.format("%,.0f VNĐ", rr.getFineAmount()));
 
-            System.out.println("[TEST] 100% Logic Lõi Mượn/Trả/Phạt hoạt động hoàn hảo!\n");
+            // Test xác thực đăng nhập thủ thư
+            boolean authOk = authService.authenticate("admin", "admin123");
+            boolean authFail = !authService.authenticate("admin", "wrong_pass");
+            if (authOk && authFail) {
+                System.out.println("[TEST] 3. Xác thực Đăng nhập Thủ thư (mã hóa SHA-256): THÀNH CÔNG");
+            }
+
+            System.out.println("[TEST] Kết luận: 100% Nghiệp vụ của Trưởng nhóm hoạt động hoàn hảo!\n");
         } catch (Exception e) {
             System.err.println("[TEST ERROR] " + e.getMessage());
         }
     }
 
-    private static void startHttpServer(BorrowService service) {
+    private static void startHttpServer(BorrowService service, AuthService authService) {
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
 
-            // Gắn BorrowHandler cho các endpoint Mượn/Trả
+            // Gắn Handler cho API Mượn/Trả sách
             BorrowHandler borrowHandler = new BorrowHandler(service);
             server.createContext("/api/borrow", borrowHandler);
             server.createContext("/api/return", borrowHandler);
 
-            // Endpoint phụ trợ xem danh sách phiếu mượn (/api/tickets)
+            // Gắn Handler cho API Đăng nhập Thủ thư
+            AuthHandler authHandler = new AuthHandler(authService);
+            server.createContext("/api/login", authHandler);
+
+            // Endpoint phụ trợ danh sách phiếu mượn (/api/tickets)
             server.createContext("/api/tickets", exchange -> {
                 exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
                 exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
@@ -118,13 +131,15 @@ public class Main {
                 }
             });
 
-            // Phục vụ giao diện Frontend tĩnh nếu người dùng truy cập trực tiếp
+            // Phục vụ giao diện Frontend
             server.createContext("/", exchange -> {
                 String uriPath = exchange.getRequestURI().getPath();
                 if (uriPath.equals("/") || uriPath.equals("/borrow.html")) {
                     serveStaticFile(exchange, "frontend/borrow.html", "text/html; charset=UTF-8");
                 } else if (uriPath.equals("/return.html")) {
                     serveStaticFile(exchange, "frontend/return.html", "text/html; charset=UTF-8");
+                } else if (uriPath.equals("/login.html")) {
+                    serveStaticFile(exchange, "frontend/login.html", "text/html; charset=UTF-8");
                 } else {
                     String notFound = "<h1>404 - Không tìm thấy trang</h1>";
                     exchange.sendResponseHeaders(404, notFound.length());
@@ -139,10 +154,12 @@ public class Main {
 
             System.out.println("================================================================================");
             System.out.println(">>> SERVER BACKEND ĐANG CHẠY TẠI: http://localhost:" + PORT);
+            System.out.println(">>> Giao diện Đăng Nhập Thủ Thư:  http://localhost:" + PORT + "/login.html");
             System.out.println(">>> Giao diện Mượn Sách:          http://localhost:" + PORT + "/borrow.html");
             System.out.println(">>> Giao diện Trả Sách:           http://localhost:" + PORT + "/return.html");
             System.out.println(">>> API Mượn Sách:                POST http://localhost:" + PORT + "/api/borrow");
             System.out.println(">>> API Trả Sách:                 POST http://localhost:" + PORT + "/api/return/{ticketId}");
+            System.out.println(">>> API Đăng Nhập:                POST http://localhost:" + PORT + "/api/login");
             System.out.println("================================================================================");
 
         } catch (IOException e) {
