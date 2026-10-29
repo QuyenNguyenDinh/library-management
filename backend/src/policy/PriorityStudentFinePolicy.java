@@ -31,3 +31,4 @@ public class PriorityStudentFinePolicy implements FinePolicy {
         return POLICY_NAME;
     }
 }
+

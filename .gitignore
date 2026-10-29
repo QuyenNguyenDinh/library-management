@@ -1,6 +1,8 @@
 target/
 out/
 build/
+bin/
+backend/bin/
 *.class
 *.jar
 .idea/

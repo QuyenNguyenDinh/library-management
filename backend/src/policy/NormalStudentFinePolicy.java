@@ -31,3 +31,4 @@ public class NormalStudentFinePolicy implements FinePolicy {
         return POLICY_NAME;
     }
 }
+
