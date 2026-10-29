@@ -1,17 +1,20 @@
 package model;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Lớp BorrowTicket đại diện cho Phiếu mượn sách trong thư viện.
- * Áp dụng tính chất Đóng gói (Encapsulation) với tất cả thuộc tính private.
+ * Hỗ trợ cả mượn 1 cuốn hoặc 1 phiếu mượn nhiều sách (List<BorrowTicketDetail>).
  */
 public class BorrowTicket {
 
     private String id;
     private String readerId;
-    private String bookId;
-    private int quantity;
+    private String bookId; // Giữ để tương thích mượn 1 sách
+    private int quantity;  // Tổng số lượng sách mượn trong phiếu
+    private List<BorrowTicketDetail> details; // Danh sách chi tiết các sách được mượn
     private LocalDate borrowDate;
     private LocalDate dueDate;
     private LocalDate returnDate;
@@ -21,6 +24,7 @@ public class BorrowTicket {
     public BorrowTicket() {
         this.status = TicketStatus.BORROWING;
         this.fineAmount = 0.0;
+        this.details = new ArrayList<>();
     }
 
     public BorrowTicket(String id, String readerId, String bookId, int quantity, LocalDate borrowDate, LocalDate dueDate) {
@@ -33,18 +37,41 @@ public class BorrowTicket {
         this.returnDate = null;
         this.status = TicketStatus.BORROWING;
         this.fineAmount = 0.0;
+        this.details = new ArrayList<>();
+        if (bookId != null && quantity > 0) {
+            this.details.add(new BorrowTicketDetail(bookId, quantity));
+        }
     }
 
-    public BorrowTicket(String id, String readerId, String bookId, int quantity, LocalDate borrowDate, LocalDate dueDate, LocalDate returnDate, TicketStatus status, double fineAmount) {
+    public BorrowTicket(String id, String readerId, List<BorrowTicketDetail> details, LocalDate borrowDate, LocalDate dueDate) {
         this.id = id;
         this.readerId = readerId;
-        this.bookId = bookId;
-        this.quantity = quantity;
+        this.details = details != null ? new ArrayList<>(details) : new ArrayList<>();
         this.borrowDate = borrowDate;
         this.dueDate = dueDate;
-        this.returnDate = returnDate;
-        this.status = status;
-        this.fineAmount = fineAmount;
+        this.returnDate = null;
+        this.status = TicketStatus.BORROWING;
+        this.fineAmount = 0.0;
+        
+        // Tính tổng số lượng và đặt bookId đại diện
+        int sum = 0;
+        for (BorrowTicketDetail d : this.details) {
+            sum += d.getQuantity();
+        }
+        this.quantity = sum;
+        if (!this.details.isEmpty()) {
+            this.bookId = this.details.get(0).getBookId();
+        }
+    }
+
+    public void addDetail(BorrowTicketDetail detail) {
+        if (detail != null) {
+            this.details.add(detail);
+            this.quantity += detail.getQuantity();
+            if (this.bookId == null) {
+                this.bookId = detail.getBookId();
+            }
+        }
     }
 
     public boolean isBorrowing() {
@@ -87,6 +114,19 @@ public class BorrowTicket {
 
     public void setQuantity(int quantity) {
         this.quantity = quantity;
+    }
+
+    public List<BorrowTicketDetail> getDetails() {
+        return details;
+    }
+
+    public void setDetails(List<BorrowTicketDetail> details) {
+        this.details = details != null ? details : new ArrayList<>();
+        int sum = 0;
+        for (BorrowTicketDetail d : this.details) {
+            sum += d.getQuantity();
+        }
+        this.quantity = sum;
     }
 
     public LocalDate getBorrowDate() {
@@ -136,6 +176,7 @@ public class BorrowTicket {
                 ", readerId='" + readerId + '\'' +
                 ", bookId='" + bookId + '\'' +
                 ", quantity=" + quantity +
+                ", detailsCount=" + (details != null ? details.size() : 0) +
                 ", borrowDate=" + borrowDate +
                 ", dueDate=" + dueDate +
                 ", returnDate=" + returnDate +
@@ -144,4 +185,3 @@ public class BorrowTicket {
                 '}';
     }
 }
-
