@@ -26,3 +26,4 @@ public class StudentReader extends Reader {
         super(id, name, phone, ReaderType.NORMAL_STUDENT, DEFAULT_MAX_BORROW_LIMIT, currentBorrowCount, new NormalStudentFinePolicy());
     }
 }
+

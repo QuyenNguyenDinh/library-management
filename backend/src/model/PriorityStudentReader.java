@@ -26,3 +26,4 @@ public class PriorityStudentReader extends Reader {
         super(id, name, phone, ReaderType.PRIORITY_STUDENT, DEFAULT_MAX_BORROW_LIMIT, currentBorrowCount, new PriorityStudentFinePolicy());
     }
 }
+

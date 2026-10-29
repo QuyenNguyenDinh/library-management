@@ -13,3 +13,4 @@ public class LibraryException extends RuntimeException {
         super(message, cause);
     }
 }
+

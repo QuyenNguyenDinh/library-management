@@ -10,3 +10,4 @@ public class InvalidTicketStateException extends LibraryException {
         super(message);
     }
 }
+

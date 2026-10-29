@@ -9,3 +9,4 @@ public class InvalidBorrowRequestException extends LibraryException {
         super(message);
     }
 }
+

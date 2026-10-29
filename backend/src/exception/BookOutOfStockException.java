@@ -9,3 +9,4 @@ public class BookOutOfStockException extends LibraryException {
         super(message);
     }
 }
+

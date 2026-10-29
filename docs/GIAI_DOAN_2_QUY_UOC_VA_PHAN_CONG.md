@@ -228,3 +228,4 @@ Quy ước chuẩn kết nối giữa Backend và Frontend để 2 nhóm code đ
    - **Bước 6: Trưởng nhóm review và merge:**
      - Trưởng nhóm kiểm tra code, chạy thử. Nếu đạt tiêu chuẩn mới thực hiện `Merge Pull Request`.
      - Nếu có lỗi hoặc chưa chuẩn OOP/quy ước, Trưởng nhóm ghi comment yêu cầu thành viên sửa lại trên nhánh đó.
+
