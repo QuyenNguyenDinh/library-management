@@ -1,1 +1,82 @@
-[]
+[
+  {
+    "id": "BK001",
+    "title": "Lập trình hướng đối tượng với Java",
+    "author": "Phạm Văn Ất",
+    "category": "Công nghệ thông tin",
+    "availableQuantity": 5,
+    "price": 120000
+  },
+  {
+    "id": "BK002",
+    "title": "Clean Code - Mã sạch và Nghệ thuật lập trình",
+    "author": "Robert C. Martin",
+    "category": "Công nghệ thông tin",
+    "availableQuantity": 4,
+    "price": 250000
+  },
+  {
+    "id": "BK003",
+    "title": "Cấu trúc dữ liệu và Giải thuật",
+    "author": "Đỗ Xuân Lôi",
+    "category": "Công nghệ thông tin",
+    "availableQuantity": 6,
+    "price": 110000
+  },
+  {
+    "id": "BK004",
+    "title": "Cơ sở dữ liệu",
+    "author": "Lê Tiến Vương",
+    "category": "Công nghệ thông tin",
+    "availableQuantity": 5,
+    "price": 95000
+  },
+  {
+    "id": "BK005",
+    "title": "Mạng máy tính căn bản",
+    "author": "Andrew S. Tanenbaum",
+    "category": "Công nghệ thông tin",
+    "availableQuantity": 3,
+    "price": 180000
+  },
+  {
+    "id": "BK006",
+    "title": "Kinh tế vi mô",
+    "author": "N. Gregory Mankiw",
+    "category": "Kinh tế",
+    "availableQuantity": 7,
+    "price": 165000
+  },
+  {
+    "id": "BK007",
+    "title": "Kinh tế vĩ mô",
+    "author": "N. Gregory Mankiw",
+    "category": "Kinh tế",
+    "availableQuantity": 7,
+    "price": 170000
+  },
+  {
+    "id": "BK008",
+    "title": "Nhà giả kim",
+    "author": "Paulo Coelho",
+    "category": "Văn học",
+    "availableQuantity": 10,
+    "price": 79000
+  },
+  {
+    "id": "BK009",
+    "title": "Đắc nhân tâm",
+    "author": "Dale Carnegie",
+    "category": "Kỹ năng sống",
+    "availableQuantity": 8,
+    "price": 86000
+  },
+  {
+    "id": "BK010",
+    "title": "Tuổi trẻ đáng giá bao nhiêu",
+    "author": "Rosie Nguyễn",
+    "category": "Kỹ năng sống",
+    "availableQuantity": 9,
+    "price": 90000
+  }
+]
