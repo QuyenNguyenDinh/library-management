@@ -236,7 +236,11 @@ export default function ReadersPage() {
                       {r.currentBorrowCount || 0}
                     </span>
                   </td>
-                  <td className="fine">{FINE_DESCRIPTIONS[r.type] || '—'}</td>
+                  <td className="fine">
+                    {r.finePolicy?.dailyRate
+                      ? `${Number(r.finePolicy.dailyRate).toLocaleString('vi-VN')}đ/ngày`
+                      : FINE_DESCRIPTIONS[r.type] || '—'}
+                  </td>
                   <td className="right">
                     <div style={{ display: 'inline-flex', gap: 6 }}>
                       <button
