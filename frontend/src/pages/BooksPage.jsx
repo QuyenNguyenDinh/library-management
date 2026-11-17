@@ -330,7 +330,6 @@ export default function BooksPage() {
                       type="number"
                       className="input"
                       min="0"
-                      step="1000"
                       required
                       value={currentBook.price}
                       onChange={(e) => setCurrentBook({ ...currentBook, price: e.target.value })}
