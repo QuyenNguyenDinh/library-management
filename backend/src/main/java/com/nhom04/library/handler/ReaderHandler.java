@@ -81,12 +81,8 @@ public class ReaderHandler {
         if (id != null && !id.isBlank()) {
             reader.setId(id);
         }
-        if (fullName != null && !fullName.isBlank()) {
-            reader.setFullName(fullName);
-        }
-        if (phone != null && !phone.isBlank()) {
-            reader.setPhone(phone);
-        }
+        reader.setFullName(fullName);
+        reader.setPhone(phone);
 
         return reader;
     }

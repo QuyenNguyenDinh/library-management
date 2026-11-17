@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout.jsx'
 import ReturnPage from './pages/ReturnPage.jsx'
 import BorrowPage from './pages/BorrowPage.jsx'
+import ReadersPage from './pages/ReadersPage.jsx'
 
 // Trang của thành viên khác chưa merge -> hiện khung chờ.
 // Khi trang thật có trên main: import nó và thay element tương ứng (mỗi người chỉ sửa đúng 1 dòng của mình).
@@ -20,7 +21,7 @@ export default function App() {
       <Route element={<Layout />}>
         <Route path="/" element={<Navigate to="/return" replace />} />
         <Route path="/books" element={<Placeholder title="Quản lý sách" owner="Hòa" />} />
-        <Route path="/readers" element={<Placeholder title="Quản lý bạn đọc" owner="Sáng" />} />
+        <Route path="/readers" element={<ReadersPage />} />
         <Route path="/borrow" element={<BorrowPage />} />
         <Route path="/return" element={<ReturnPage />} />
         <Route path="/tickets" element={<Placeholder title="Phiếu mượn" owner="Sang" />} />
