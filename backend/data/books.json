@@ -78,13 +78,13 @@
     "category": "Kỹ năng sống",
     "availableQuantity": 9,
     "price": 90000
-  }
+  },
   {
-  "id": "BK010",
-  "title": "Nguyên lý Marketing",
-  "author": "Philip Kotler",
-  "category": "Kinh tế",
-  "availableQuantity": 0,
-  "price": 195000
-}
+    "id": "BK011",
+    "title": "Nguyên lý Marketing",
+    "author": "Philip Kotler",
+    "category": "Kinh tế",
+    "availableQuantity": 0,
+    "price": 195000
+  }
 ]
