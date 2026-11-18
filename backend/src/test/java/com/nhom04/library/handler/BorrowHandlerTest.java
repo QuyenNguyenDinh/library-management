@@ -91,4 +91,13 @@ class BorrowHandlerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.success").value(false));
     }
+
+    @Test
+    void borrow_notJson_returns415() throws Exception {
+        mockMvc.perform(post("/api/borrow")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .content("readerId=RD001"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.success").value(false));
+    }
 }
