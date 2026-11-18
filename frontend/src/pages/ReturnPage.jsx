@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { api, formatDate, formatMoney, todayIso } from '../api/client.js'
+import { formatDate, formatMoney, todayIso } from '../api/client.js'
+import { returnApi } from '../api/returnApi.js'
 import ConfirmModal from '../components/ConfirmModal.jsx'
 import { useToast } from '../components/Toast.jsx'
 
@@ -20,7 +21,7 @@ export default function ReturnPage() {
     setLoading(true)
     try {
       // /api/tickets do Sang làm (hợp đồng API); /api/return-records do phần trả sách.
-      const [t, r] = await Promise.all([api.get('/api/tickets?status=BORROWING'), api.get('/api/return-records')])
+      const [t, r] = await Promise.all([returnApi.getBorrowingTickets(), returnApi.getReturnRecords()])
       setTickets(t || [])
       setRecords(r || [])
     } catch (e) {
@@ -50,7 +51,7 @@ export default function ReturnPage() {
   const confirmReturn = async () => {
     setBusy(true)
     try {
-      const rec = await api.post(`/api/return/${selected.id}`, { returnDate })
+      const rec = await returnApi.returnBook(selected.id, returnDate)
       toast.success(
         rec.fineAmount > 0
           ? `Đã trả phiếu ${rec.ticketId}. Trễ ${rec.overdueDays} ngày, phạt ${formatMoney(rec.fineAmount)}.`
