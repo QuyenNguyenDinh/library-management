@@ -3,13 +3,16 @@ package com.nhom04.library.service;
 import com.nhom04.library.exception.BookInUseException;
 import com.nhom04.library.exception.BookNotFoundException;
 import com.nhom04.library.model.Book;
+import com.nhom04.library.model.BorrowTicket;
+import com.nhom04.library.model.BorrowTicketDetail;
 import com.nhom04.library.repository.BookRepository;
+import com.nhom04.library.repository.TicketRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -20,11 +23,14 @@ class BookServiceTest {
     Path tempDir;
 
     private BookService bookService;
+    private TicketRepository ticketRepository;
 
     @BeforeEach
     void setUp() {
-        BookRepository repo = new BookRepository(tempDir.toString());
-        bookService = new BookService(repo, tempDir.toString());
+        String dir = tempDir.toString();
+        BookRepository repo = new BookRepository(dir);
+        ticketRepository = new TicketRepository(dir);
+        bookService = new BookService(repo, ticketRepository);
     }
 
     @Test
@@ -41,25 +47,17 @@ class BookServiceTest {
     }
 
     @Test
-    void testDeleteBookWhileBorrowingThrowsBookInUseException() throws Exception {
+    void testDeleteBookWhileBorrowingThrowsBookInUseException() {
         bookService.createBook(
                 new Book("TMP", "Java Cơ Bản", "Tác giả A", "CNTT", 5, 100000));
 
-        String ticketJson = """
-                [
-                  {
-                    "id": "TK001",
-                    "readerId": "RD001",
-                    "borrowDate": "2026-11-01",
-                    "dueDate": "2026-11-15",
-                    "status": "BORROWING",
-                    "details": [
-                      { "bookId": "BK001", "bookTitle": "Java Cơ Bản", "quantity": 1 }
-                    ]
-                  }
-                ]
-                """;
-        Files.writeString(tempDir.resolve("tickets.json"), ticketJson);
+        ticketRepository.save(new BorrowTicket(
+                "TK001",
+                "RD001",
+                List.of(new BorrowTicketDetail("BK001", "Java Cơ Bản", 1)),
+                LocalDate.of(2026, 11, 1),
+                LocalDate.of(2026, 11, 15)
+        ));
 
         assertThrows(BookInUseException.class, () -> bookService.deleteBook("BK001"));
     }

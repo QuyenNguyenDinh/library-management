@@ -1,4 +1,3 @@
-
 package com.nhom04.library.handler;
 
 import com.nhom04.library.model.Book;
@@ -31,7 +30,7 @@ public class BookHandler {
                 : bookService.getAllBooks();
 
         return ResponseEntity.ok(
-                ApiResponse.ok("Lay danh sach sach thanh cong", books)
+                ApiResponse.ok("Lấy danh sách sách thành công", books)
         );
     }
 
@@ -59,24 +58,24 @@ public class BookHandler {
     // Thêm sách mới
     @PostMapping
     public ResponseEntity<ApiResponse<Book>> createBook(
-            @RequestBody Book book) {
+            @RequestBody BookRequest book) {
 
-        Book created = bookService.createBook(book);
+        Book created = bookService.createBook(book.toBook());
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok("Them sach moi thanh cong", created));
+                .body(ApiResponse.ok("Thêm sách mới thành công", created));
     }
 
     // Cập nhật sách
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<Book>> updateBook(
             @PathVariable String id,
-            @RequestBody Book book) {
+            @RequestBody BookRequest book) {
 
-        Book updated = bookService.updateBook(id, book);
+        Book updated = bookService.updateBook(id, book.toBook());
 
         return ResponseEntity.ok(
-                ApiResponse.ok("Cap nhat sach thanh cong", updated)
+                ApiResponse.ok("Cập nhật sách thành công", updated)
         );
     }
 
@@ -88,7 +87,19 @@ public class BookHandler {
         bookService.deleteBook(id);
 
         return ResponseEntity.ok(
-                ApiResponse.ok("Xoa sach thanh cong", null)
+                ApiResponse.ok("Xóa sách thành công", null)
         );
+    }
+
+    public record BookRequest(String title, String author, String category, int availableQuantity, double price) {
+        Book toBook() {
+            Book b = new Book();
+            b.setTitle(title);
+            b.setAuthor(author);
+            b.setCategory(category);
+            b.setAvailableQuantity(availableQuantity);
+            b.setPrice(price);
+            return b;
+        }
     }
 }

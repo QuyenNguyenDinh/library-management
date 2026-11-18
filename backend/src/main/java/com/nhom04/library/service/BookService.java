@@ -1,23 +1,14 @@
 package com.nhom04.library.service;
 
-import com.google.gson.reflect.TypeToken;
 import com.nhom04.library.exception.BookInUseException;
 import com.nhom04.library.exception.BookNotFoundException;
 import com.nhom04.library.model.Book;
-import com.nhom04.library.model.BorrowTicket;
-import com.nhom04.library.model.BorrowTicketDetail;
 import com.nhom04.library.model.TicketStatus;
 import com.nhom04.library.repository.BookRepository;
-import com.nhom04.library.utils.GsonFactory;
+import com.nhom04.library.repository.TicketRepository;
 import com.nhom04.library.utils.IdGenerator;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,12 +18,11 @@ import java.util.stream.Collectors;
 public class BookService {
 
     private final BookRepository bookRepository;
-    private final String dataDir;
+    private final TicketRepository ticketRepository;
 
-    public BookService(BookRepository bookRepository,
-                       @Value("${library.data-dir:data}") String dataDir) {
+    public BookService(BookRepository bookRepository, TicketRepository ticketRepository) {
         this.bookRepository = bookRepository;
-        this.dataDir = dataDir;
+        this.ticketRepository = ticketRepository;
     }
 
     public List<Book> getAllBooks() {
@@ -102,26 +92,9 @@ public class BookService {
     }
 
     private boolean isBookCurrentlyBorrowed(String bookId) {
-        Path ticketsPath = Paths.get(dataDir, "tickets.json");
-        if (!Files.exists(ticketsPath)) {
-            return false;
-        }
-        try (Reader reader = Files.newBufferedReader(ticketsPath, StandardCharsets.UTF_8)) {
-            List<BorrowTicket> tickets = GsonFactory.create()
-                    .fromJson(reader, new TypeToken<List<BorrowTicket>>() {}.getType());
-            if (tickets == null) return false;
-
-            for (BorrowTicket ticket : tickets) {
-                if (ticket.getStatus() == TicketStatus.BORROWING && ticket.getDetails() != null) {
-                    for (BorrowTicketDetail detail : ticket.getDetails()) {
-                        if (bookId.equals(detail.getBookId())) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        } catch (Exception ignored) {
-        }
-        return false;
+        return ticketRepository.findByStatus(TicketStatus.BORROWING).stream()
+                .filter(ticket -> ticket.getDetails() != null)
+                .flatMap(ticket -> ticket.getDetails().stream())
+                .anyMatch(detail -> bookId.equals(detail.getBookId()));
     }
 }
