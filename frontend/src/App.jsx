@@ -4,6 +4,8 @@ import ReturnPage from './pages/ReturnPage.jsx'
 import BorrowPage from './pages/BorrowPage.jsx'
 import ReadersPage from './pages/ReadersPage.jsx'
 import BooksPage from './pages/BooksPage.jsx'
+import TicketsPage from './pages/TicketsPage.jsx'
+import StatsPage from './pages/StatsPage.jsx'
 
 // Trang của thành viên khác chưa merge -> hiện khung chờ.
 // Khi trang thật có trên main: import nó và thay element tương ứng (mỗi người chỉ sửa đúng 1 dòng của mình).
@@ -25,8 +27,8 @@ export default function App() {
         <Route path="/readers" element={<ReadersPage />} />
         <Route path="/borrow" element={<BorrowPage />} />
         <Route path="/return" element={<ReturnPage />} />
-        <Route path="/tickets" element={<Placeholder title="Phiếu mượn" owner="Sang" />} />
-        <Route path="/stats" element={<Placeholder title="Thống kê" owner="Sang" />} />
+        <Route path="/tickets" element={<TicketsPage />} />
+        <Route path="/stats" element={<StatsPage />} />
         {/* Sang thêm /login và route guard sau khi có trang Đăng nhập */}
         <Route path="*" element={<Placeholder title="Không tìm thấy trang" owner="nhóm" />} />
       </Route>
