@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -66,6 +67,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleWrongMethod(HttpRequestMethodNotSupportedException e) {
         return build(HttpStatus.METHOD_NOT_ALLOWED,
                 "Phương thức " + e.getMethod() + " không được hỗ trợ cho endpoint này.");
+    }
+
+    /** Body không phải JSON (ví dụ form hoặc text gửi từ Postman) → 415. */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnsupportedMediaType(HttpMediaTypeNotSupportedException e) {
+        String received = e.getContentType() != null ? e.getContentType().toString() : "không xác định";
+        return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                "Dữ liệu phải gửi dạng JSON (Content-Type: application/json), đang nhận: " + received + ".");
     }
 
     /** Lỗi không lường trước (lỗi đọc/ghi file, bug, ...) → 500. */
