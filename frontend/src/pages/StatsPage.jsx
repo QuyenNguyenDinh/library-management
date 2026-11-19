@@ -1,0 +1,5 @@
+import {useEffect,useState} from 'react'
+import {api,formatMoney} from '../api/client.js'
+import DataTable from '../components/DataTable.jsx'
+function StatsPage() {const [s,setS]=useState(null),[err,setErr]=useState('');useEffect(()=>{api.get('/api/stats').then(setS).catch(e=>setErr(e.message))},[]);if(err)return <section className="page"><h1>Thống kê</h1><p>{err}</p></section>;if(!s)return <section className="page">Đang tải...</section>;return <section className="page"><h1>Thống kê</h1><div style={{display:'flex',gap:16,flexWrap:'wrap',margin:'20px 0'}}><div className="card"><b>Phiếu quá hạn</b><h2>{s.overdueCount}</h2></div><div className="card"><b>Tổng tiền phạt</b><h2>{formatMoney(s.totalFine)}</h2></div></div><h2>Sách được mượn nhiều</h2><DataTable columns={[{key:'bookId',label:'Mã sách'},{key:'title',label:'Tên sách'},{key:'borrowCount',label:'Số lượng mượn'}]} rows={s.topBooks}/><h2 style={{marginTop:24}}>Sách sắp hết</h2><DataTable columns={[{key:'id',label:'Mã sách'},{key:'title',label:'Tên sách'},{key:'availableQuantity',label:'Còn lại'}]} rows={s.lowStockBooks}/></section>}
+export default StatsPage;

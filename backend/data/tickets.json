@@ -1,1 +1,115 @@
-[]
+
+[
+  {
+    "id": "TK001",
+    "readerId": "RD001",
+    "borrowDate": "2026-11-01",
+    "dueDate": "2026-11-15",
+    "returnDate": null,
+    "status": "BORROWING",
+    "fineAmount": 0,
+    "details": [
+      {
+        "bookId": "BK001",
+        "bookTitle": "Sách BK001",
+        "quantity": 1
+      }
+    ]
+  },
+  {
+    "id": "TK002",
+    "readerId": "RD003",
+    "borrowDate": "2026-11-03",
+    "dueDate": "2026-11-17",
+    "returnDate": null,
+    "status": "BORROWING",
+    "fineAmount": 0,
+    "details": [
+      {
+        "bookId": "BK003",
+        "bookTitle": "Sách BK003",
+        "quantity": 2
+      }
+    ]
+  },
+  {
+    "id": "TK003",
+    "readerId": "RD002",
+    "borrowDate": "2026-11-18",
+    "dueDate": "2026-12-20",
+    "returnDate": null,
+    "status": "BORROWING",
+    "fineAmount": 0,
+    "details": [
+      {
+        "bookId": "BK006",
+        "bookTitle": "Kinh tế vi mô",
+        "quantity": 1
+      }
+    ]
+  },
+  {
+    "id": "TK004",
+    "readerId": "RD003",
+    "borrowDate": "2026-11-19",
+    "dueDate": "2026-12-20",
+    "returnDate": null,
+    "status": "BORROWING",
+    "fineAmount": 0,
+    "details": [
+      {
+        "bookId": "BK008",
+        "bookTitle": "Nhà giả kim",
+        "quantity": 1
+      }
+    ]
+  },
+  {
+    "id": "TK005",
+    "readerId": "RD001",
+    "borrowDate": "2026-10-20",
+    "dueDate": "2026-11-03",
+    "returnDate": "2026-11-07",
+    "status": "RETURNED",
+    "fineAmount": 20000,
+    "details": [
+      {
+        "bookId": "BK002",
+        "bookTitle": "Clean Code - Mã sạch và Nghệ thuật lập trình",
+        "quantity": 1
+      }
+    ]
+  },
+  {
+    "id": "TK006",
+    "readerId": "RD003",
+    "borrowDate": "2026-10-25",
+    "dueDate": "2026-11-08",
+    "returnDate": "2026-11-12",
+    "status": "RETURNED",
+    "fineAmount": 8000,
+    "details": [
+      {
+        "bookId": "BK004",
+        "bookTitle": "Cơ sở dữ liệu",
+        "quantity": 1
+      }
+    ]
+  },
+  {
+    "id": "TK007",
+    "readerId": "RD002",
+    "borrowDate": "2026-10-28",
+    "dueDate": "2026-11-11",
+    "returnDate": "2026-11-10",
+    "status": "RETURNED",
+    "fineAmount": 0,
+    "details": [
+      {
+        "bookId": "BK009",
+        "bookTitle": "Đắc nhân tâm",
+        "quantity": 1
+      }
+    ]
+  }
+]
