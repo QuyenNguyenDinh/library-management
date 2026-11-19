@@ -133,4 +133,34 @@ class BookHandlerTest {
                 .andExpect(jsonPath("$.data.length()").value(1))
                 .andExpect(jsonPath("$.data[0].id").value("BK001"));
     }
+
+    @Test
+    @DisplayName("GET /api/books/{id} trả về 200 khi tồn tại và 404 khi không tìm thấy")
+    void getBookById_returns200Or404() throws Exception {
+        mockMvc.perform(get("/api/books/BK001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.id").value("BK001"))
+                .andExpect(jsonPath("$.data.title").value("Lập trình hướng đối tượng với Java"));
+
+        mockMvc.perform(get("/api/books/BK999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    @DisplayName("GET /api/books/{id}/availability kiểm tra đúng tình trạng đủ hoặc thiếu tồn kho")
+    void checkAvailability_returnsCorrectStatus() throws Exception {
+        mockMvc.perform(get("/api/books/BK001/availability").param("quantity", "3"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.available").value(true))
+                .andExpect(jsonPath("$.data.availableQuantity").value(5));
+
+        mockMvc.perform(get("/api/books/BK001/availability").param("quantity", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.available").value(false))
+                .andExpect(jsonPath("$.data.availableQuantity").value(5));
+    }
 }
