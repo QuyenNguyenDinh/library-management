@@ -12,6 +12,8 @@ const EMPTY_BOOK = {
   price: 0,
 }
 
+const PAGE_SIZE = 8
+
 export default function BooksPage() {
   const toast = useToast()
   const [books, setBooks] = useState([])
@@ -19,11 +21,25 @@ export default function BooksPage() {
   const [busy, setBusy] = useState(false)
   const [keyword, setKeyword] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('ALL')
+  const [stockFilter, setStockFilter] = useState('ALL')
+  const [sortBy, setSortBy] = useState('ID_ASC')
+  const [currentPage, setCurrentPage] = useState(1)
 
   // Modal Thêm / Sửa sách
   const [showModal, setShowModal] = useState(false)
-  const [modalMode, setModalMode] = useState('CREATE') // 'CREATE' | 'EDIT'
+  const [modalMode, setModalMode] = useState('CREATE')
   const [currentBook, setCurrentBook] = useState(EMPTY_BOOK)
+
+  // Modal Chi tiết & Kiểm tra tồn kho
+  const [detailBook, setDetailBook] = useState(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [checkQty, setCheckQty] = useState(1)
+  const [availabilityResult, setAvailabilityResult] = useState(null)
+  const [checkingStock, setCheckingStock] = useState(false)
+
+  // Modal Nhập kho nhanh
+  const [restockBook, setRestockBook] = useState(null)
+  const [restockAmount, setRestockAmount] = useState(5)
 
   // Modal xác nhận xóa sách
   const [deletingBook, setDeletingBook] = useState(null)
@@ -34,6 +50,7 @@ export default function BooksPage() {
       try {
         const data = await bookApi.getAll(searchKw)
         setBooks(data || [])
+        setCurrentPage(1)
       } catch (err) {
         toast.error(err.message || 'Lỗi khi tải danh sách sách.')
       } finally {
@@ -50,6 +67,49 @@ export default function BooksPage() {
   const handleSearch = (e) => {
     e.preventDefault()
     loadBooks(keyword)
+  }
+
+  const handleResetFilters = () => {
+    setKeyword('')
+    setSelectedCategory('ALL')
+    setStockFilter('ALL')
+    setSortBy('ID_ASC')
+    setCurrentPage(1)
+    loadBooks('')
+  }
+
+  const handleOpenDetailModal = async (book) => {
+    setDetailBook(book)
+    setCheckQty(1)
+    setAvailabilityResult(null)
+    setDetailLoading(true)
+    try {
+      const fresh = await bookApi.getById(book.id)
+      if (fresh) setDetailBook(fresh)
+    } catch (err) {
+      toast.error(err.message || 'Không thể tải chi tiết sách.')
+    } finally {
+      setDetailLoading(false)
+    }
+  }
+
+  const handleCheckAvailability = async (e) => {
+    e.preventDefault()
+    if (!detailBook) return
+    const qty = Math.floor(Number(checkQty))
+    if (Number.isNaN(qty) || qty <= 0) {
+      toast.error('Số lượng cần kiểm tra phải lớn hơn 0.')
+      return
+    }
+    setCheckingStock(true)
+    try {
+      const res = await bookApi.checkAvailability(detailBook.id, qty)
+      setAvailabilityResult({ ...res, requestedQuantity: qty })
+    } catch (err) {
+      toast.error(err.message || 'Lỗi khi kiểm tra tồn kho.')
+    } finally {
+      setCheckingStock(false)
+    }
   }
 
   const handleOpenCreateModal = () => {
@@ -120,6 +180,39 @@ export default function BooksPage() {
     }
   }
 
+  const handleOpenRestock = (book) => {
+    setRestockBook(book)
+    setRestockAmount(5)
+  }
+
+  const handleConfirmRestock = async (e) => {
+    e.preventDefault()
+    if (!restockBook) return
+    const added = Math.floor(Number(restockAmount))
+    if (Number.isNaN(added) || added <= 0) {
+      toast.error('Số lượng nhập thêm phải lớn hơn 0.')
+      return
+    }
+
+    setBusy(true)
+    try {
+      await bookApi.update(restockBook.id, {
+        title: restockBook.title,
+        author: restockBook.author,
+        category: restockBook.category,
+        availableQuantity: (restockBook.availableQuantity || 0) + added,
+        price: restockBook.price,
+      })
+      toast.success(`Đã nhập thêm ${added} cuốn cho "${restockBook.title}".`)
+      setRestockBook(null)
+      await loadBooks(keyword)
+    } catch (err) {
+      toast.error(err.message || 'Không thể nhập thêm kho.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const handleConfirmDelete = async () => {
     if (!deletingBook) return
     setBusy(true)
@@ -129,7 +222,6 @@ export default function BooksPage() {
       setDeletingBook(null)
       await loadBooks(keyword)
     } catch (err) {
-      // Nếu sách đang được mượn (409 BookInUseException), backend trả về message rõ lý do
       toast.error(err.message || 'Không thể xóa sách này.')
       setDeletingBook(null)
     } finally {
@@ -137,16 +229,78 @@ export default function BooksPage() {
     }
   }
 
-  const categories = useMemo(() => {
-    return Array.from(new Set(books.map((b) => b.category).filter(Boolean)))
+  // Thống kê riêng của danh mục sách (không trùng cảnh báo sắp hết bên trang Thống kê)
+  const summary = useMemo(() => {
+    const totalTitles = books.length
+    const totalCopies = books.reduce((sum, b) => sum + (Number(b.availableQuantity) || 0), 0)
+    const totalValue = books.reduce(
+      (sum, b) => sum + (Number(b.availableQuantity) || 0) * (Number(b.price) || 0),
+      0,
+    )
+    return { totalTitles, totalCopies, totalValue }
+  }, [books])
+
+  const categoryStats = useMemo(() => {
+    const map = new Map()
+    books.forEach((b) => {
+      if (!b.category) return
+      const prev = map.get(b.category) || { name: b.category, titles: 0, copies: 0 }
+      prev.titles += 1
+      prev.copies += Number(b.availableQuantity) || 0
+      map.set(b.category, prev)
+    })
+    return Array.from(map.values())
   }, [books])
 
   const filteredBooks = useMemo(() => {
-    return books.filter((b) => {
-      if (selectedCategory === 'ALL') return true
-      return b.category === selectedCategory
+    const list = books.filter((b) => {
+      if (selectedCategory !== 'ALL' && b.category !== selectedCategory) return false
+      const qty = Number(b.availableQuantity) || 0
+      if (stockFilter === 'IN_STOCK' && qty <= 0) return false
+      if (stockFilter === 'OUT_OF_STOCK' && qty !== 0) return false
+      return true
     })
-  }, [books, selectedCategory])
+
+    return [...list].sort((a, b) => {
+      if (sortBy === 'TITLE_ASC') return (a.title || '').localeCompare(b.title || '', 'vi')
+      if (sortBy === 'QTY_ASC') return (a.availableQuantity ?? 0) - (b.availableQuantity ?? 0)
+      if (sortBy === 'QTY_DESC') return (b.availableQuantity ?? 0) - (a.availableQuantity ?? 0)
+      if (sortBy === 'PRICE_DESC') return (b.price ?? 0) - (a.price ?? 0)
+      return (a.id || '').localeCompare(b.id || '')
+    })
+  }, [books, selectedCategory, stockFilter, sortBy])
+
+  const totalPages = Math.max(1, Math.ceil(filteredBooks.length / PAGE_SIZE))
+  const safePage = Math.min(currentPage, totalPages)
+  const paginatedBooks = useMemo(() => {
+    const start = (safePage - 1) * PAGE_SIZE
+    return filteredBooks.slice(start, start + PAGE_SIZE)
+  }, [filteredBooks, safePage])
+
+  const handleExportCsv = () => {
+    if (filteredBooks.length === 0) {
+      toast.error('Không có dữ liệu sách để xuất file.')
+      return
+    }
+    const headers = ['Mã sách', 'Tên sách', 'Tác giả', 'Thể loại', 'Tồn kho', 'Giá bìa (VNĐ)']
+    const rows = filteredBooks.map((b) => [
+      b.id,
+      `"${String(b.title || '').replaceAll('"', '""')}"`,
+      `"${String(b.author || '').replaceAll('"', '""')}"`,
+      `"${String(b.category || '').replaceAll('"', '""')}"`,
+      b.availableQuantity ?? 0,
+      b.price ?? 0,
+    ])
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'danh-muc-sach.csv'
+    link.click()
+    URL.revokeObjectURL(url)
+    toast.success(`Đã xuất ${filteredBooks.length} đầu sách ra file CSV.`)
+  }
 
   return (
     <div className="page">
@@ -154,17 +308,77 @@ export default function BooksPage() {
         <div>
           <h1>Quản lý Sách Thư viện</h1>
           <p className="muted">
-            Quản lý danh mục đầu sách, cập nhật số lượng tồn kho, giá bìa và tra cứu nhanh.
+            Quản lý danh mục đầu sách, kiểm tra tồn kho theo thời gian thực, cập nhật giá bìa và nhập kho.
           </p>
         </div>
-        <button className="btn btn-primary" onClick={handleOpenCreateModal}>
-          + Thêm sách mới
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-ghost" onClick={handleExportCsv}>
+            Xuất CSV
+          </button>
+          <button className="btn btn-primary" onClick={handleOpenCreateModal}>
+            + Thêm sách mới
+          </button>
+        </div>
       </header>
 
-      {/* Thanh tìm kiếm & lọc thể loại */}
+      {/* Thẻ thống kê danh mục sách */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: 12,
+          marginBottom: 14,
+        }}
+      >
+        <div className="card">
+          <div className="muted">Tổng đầu sách</div>
+          <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4 }}>{summary.totalTitles} đầu sách</div>
+        </div>
+        <div className="card">
+          <div className="muted">Tổng bản sách trong kho</div>
+          <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4 }}>{summary.totalCopies} cuốn</div>
+        </div>
+        <div className="card">
+          <div className="muted">Tổng giá trị tủ sách</div>
+          <div className="mono" style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}>
+            {summary.totalValue.toLocaleString('vi-VN')}đ
+          </div>
+        </div>
+      </div>
+
+      {/* Thanh phân bổ nhanh theo thể loại */}
+      {categoryStats.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14, alignItems: 'center' }}>
+          <span className="muted">Thể loại:</span>
+          <button
+            type="button"
+            className={selectedCategory === 'ALL' ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm'}
+            onClick={() => {
+              setSelectedCategory('ALL')
+              setCurrentPage(1)
+            }}
+          >
+            Tất cả ({summary.totalTitles})
+          </button>
+          {categoryStats.map((cat) => (
+            <button
+              key={cat.name}
+              type="button"
+              className={selectedCategory === cat.name ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm'}
+              onClick={() => {
+                setSelectedCategory(cat.name)
+                setCurrentPage(1)
+              }}
+            >
+              {cat.name} ({cat.titles} đầu · {cat.copies} cuốn)
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Thanh tìm kiếm, lọc & sắp xếp */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-        <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, flex: 1, minWidth: 260 }}>
+        <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, flex: 1, minWidth: 240 }}>
           <input
             type="text"
             className="input"
@@ -180,16 +394,32 @@ export default function BooksPage() {
 
         <select
           className="input"
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
+          value={stockFilter}
+          onChange={(e) => {
+            setStockFilter(e.target.value)
+            setCurrentPage(1)
+          }}
         >
-          <option value="ALL">Tất cả thể loại</option>
-          {categories.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
-            </option>
-          ))}
+          <option value="ALL">Mọi trạng thái kho</option>
+          <option value="IN_STOCK">Còn sách trong kho</option>
+          <option value="OUT_OF_STOCK">Đã hết sách (0 cuốn)</option>
         </select>
+
+        <select
+          className="input"
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+        >
+          <option value="ID_ASC">Sắp xếp: Mã sách</option>
+          <option value="TITLE_ASC">Tên sách (A → Z)</option>
+          <option value="QTY_ASC">Tồn kho (Thấp → Cao)</option>
+          <option value="QTY_DESC">Tồn kho (Cao → Thấp)</option>
+          <option value="PRICE_DESC">Giá bìa (Cao → Thấp)</option>
+        </select>
+
+        <button type="button" className="btn btn-ghost" onClick={handleResetFilters}>
+          Đặt lại
+        </button>
       </div>
 
       {/* Bảng danh sách sách */}
@@ -214,7 +444,7 @@ export default function BooksPage() {
                 </td>
               </tr>
             )}
-            {!loading && filteredBooks.length === 0 && (
+            {!loading && paginatedBooks.length === 0 && (
               <tr>
                 <td colSpan="7" className="empty">
                   Không tìm thấy cuốn sách nào phù hợp.
@@ -222,17 +452,21 @@ export default function BooksPage() {
               </tr>
             )}
             {!loading &&
-              filteredBooks.map((b) => (
+              paginatedBooks.map((b) => (
                 <tr key={b.id}>
-                  <td className="mono" style={{ fontWeight: 600 }}>
-                    {b.id}
+                  <td className="mono">{b.id}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => handleOpenDetailModal(b)}
+                    >
+                      {b.title}
+                    </button>
                   </td>
-                  <td style={{ fontWeight: 500 }}>{b.title}</td>
                   <td className="muted">{b.author}</td>
                   <td>
-                    <span className="badge" style={{ background: 'var(--line)', color: 'var(--ink)' }}>
-                      {b.category}
-                    </span>
+                    <span className="badge">{b.category}</span>
                   </td>
                   <td className="right">
                     <span className={b.availableQuantity > 0 ? 'badge badge-ok' : 'badge badge-late'}>
@@ -246,13 +480,24 @@ export default function BooksPage() {
                     <div style={{ display: 'inline-flex', gap: 6 }}>
                       <button
                         className="btn btn-ghost btn-sm"
+                        onClick={() => handleOpenDetailModal(b)}
+                      >
+                        Chi tiết
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => handleOpenRestock(b)}
+                      >
+                        + Nhập
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-sm"
                         onClick={() => handleOpenEditModal(b)}
                       >
                         Sửa
                       </button>
                       <button
                         className="btn btn-ghost btn-sm"
-                        style={{ color: 'var(--late)' }}
                         onClick={() => setDeletingBook(b)}
                       >
                         Xóa
@@ -264,6 +509,143 @@ export default function BooksPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Thanh phân trang */}
+      {!loading && filteredBooks.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: 12,
+            flexWrap: 'wrap',
+            gap: 8,
+          }}
+        >
+          <span className="muted">
+            Hiển thị {(safePage - 1) * PAGE_SIZE + 1}–
+            {Math.min(safePage * PAGE_SIZE, filteredBooks.length)} trên tổng số {filteredBooks.length} đầu sách
+          </span>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              disabled={safePage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            >
+              ← Trước
+            </button>
+            <span>
+              Trang {safePage} / {totalPages}
+            </span>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              disabled={safePage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Sau →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Chi tiết sách & Kiểm tra tồn kho */}
+      {detailBook && (
+        <div className="modal-backdrop" onClick={() => setDetailBook(null)}>
+          <div className="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <h3>
+              Chi tiết sách (<span className="mono">{detailBook.id}</span>)
+            </h3>
+            <div className="modal-body">
+              {detailLoading ? (
+                <p className="muted">Đang tải dữ liệu chi tiết từ máy chủ…</p>
+              ) : (
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <div>
+                    <span className="muted">Tên sách:</span> <strong>{detailBook.title}</strong>
+                  </div>
+                  <div>
+                    <span className="muted">Tác giả:</span> <strong>{detailBook.author}</strong>
+                  </div>
+                  <div>
+                    <span className="muted">Thể loại:</span> <strong>{detailBook.category}</strong>
+                  </div>
+                  <div>
+                    <span className="muted">Số lượng hiện có:</span>{' '}
+                    <strong>{detailBook.availableQuantity} cuốn</strong>
+                  </div>
+                  <div>
+                    <span className="muted">Giá bìa / Tổng giá trị tồn:</span>{' '}
+                    <strong className="mono">
+                      {Number(detailBook.price || 0).toLocaleString('vi-VN')}đ /{' '}
+                      {(
+                        Number(detailBook.price || 0) * Number(detailBook.availableQuantity || 0)
+                      ).toLocaleString('vi-VN')}
+                      đ
+                    </strong>
+                  </div>
+                </div>
+              )}
+
+              <hr style={{ margin: '14px 0', border: 0, borderTop: '1px solid var(--line)' }} />
+
+              <form onSubmit={handleCheckAvailability}>
+                <label className="field">
+                  <span>Kiểm tra nhanh khả năng đáp ứng mượn (số cuốn)</span>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      type="number"
+                      className="input"
+                      min="1"
+                      step="1"
+                      required
+                      value={checkQty}
+                      onChange={(e) => setCheckQty(e.target.value)}
+                      style={{ flex: 1 }}
+                    />
+                    <button type="submit" className="btn btn-primary" disabled={checkingStock}>
+                      {checkingStock ? 'Đang kiểm tra…' : 'Kiểm tra kho'}
+                    </button>
+                  </div>
+                </label>
+              </form>
+
+              {availabilityResult && (
+                <div style={{ marginTop: 10 }}>
+                  {availabilityResult.available ? (
+                    <span className="badge badge-ok">
+                      Đủ sách cho mượn {availabilityResult.requestedQuantity} cuốn (Kho còn{' '}
+                      {availabilityResult.availableQuantity} cuốn)
+                    </span>
+                  ) : (
+                    <span className="badge badge-late">
+                      Không đủ {availabilityResult.requestedQuantity} cuốn (Kho chỉ còn{' '}
+                      {availabilityResult.availableQuantity} cuốn)
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => {
+                  const target = detailBook
+                  setDetailBook(null)
+                  handleOpenRestock(target)
+                }}
+              >
+                + Nhập thêm kho
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={() => setDetailBook(null)}>
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Thêm / Sửa sách */}
       {showModal && (
@@ -349,6 +731,49 @@ export default function BooksPage() {
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={busy}>
                   {busy ? 'Đang lưu…' : modalMode === 'CREATE' ? 'Thêm sách' : 'Lưu thay đổi'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Nhập kho nhanh */}
+      {restockBook && (
+        <div className="modal-backdrop" onClick={() => !busy && setRestockBook(null)}>
+          <div className="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <h3>Nhập thêm sách vào kho</h3>
+            <form onSubmit={handleConfirmRestock}>
+              <div className="modal-body">
+                <p>
+                  Sách: <strong>{restockBook.title}</strong> (<span className="mono">{restockBook.id}</span>)
+                  <br />
+                  Tồn kho hiện tại: <strong>{restockBook.availableQuantity} cuốn</strong>
+                </p>
+                <label className="field">
+                  <span>Số lượng nhập thêm *</span>
+                  <input
+                    type="number"
+                    className="input"
+                    min="1"
+                    step="1"
+                    required
+                    value={restockAmount}
+                    onChange={(e) => setRestockAmount(e.target.value)}
+                  />
+                </label>
+              </div>
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setRestockBook(null)}
+                  disabled={busy}
+                >
+                  Huỷ
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={busy}>
+                  {busy ? 'Đang cập nhật…' : 'Xác nhận nhập kho'}
                 </button>
               </div>
             </form>
