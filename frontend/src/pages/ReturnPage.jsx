@@ -39,6 +39,7 @@ export default function ReturnPage() {
   const [records, setRecords] = useState([])
   const [readers, setReaders] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
 
   // Tab Đang mượn
   const [stateFilter, setStateFilter] = useState('ALL')
@@ -60,6 +61,7 @@ export default function ReturnPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
+    setLoadError('')
     try {
       // /api/tickets và /api/readers do phần khác làm (hợp đồng API); /api/return-records là của trả sách.
       const [t, rt, r, rd] = await Promise.all([
@@ -74,12 +76,12 @@ export default function ReturnPage() {
       setReaders(rd || [])
       return t || []
     } catch (e) {
-      toast.error(e.message)
-      return []
+      setLoadError(e.message)
+      return null
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [])
 
   const openConfirm = (ticket) => {
     setSelected(ticket)
@@ -94,7 +96,7 @@ export default function ReturnPage() {
   useEffect(() => {
     load().then((list) => {
       const id = searchParams.get('ticketId')
-      if (!id || openedRef.current) return
+      if (!list || !id || openedRef.current) return
       openedRef.current = true
       const found = list.find((t) => t.id === id)
       if (found) openConfirm(found)
@@ -184,14 +186,27 @@ export default function ReturnPage() {
   return (
     <div className="page">
       <header className="page-head">
-        <div>
-          <h1>Trả sách</h1>
-          <p className="muted">Ghi nhận trả sách, hệ thống tự tính tiền phạt theo nhóm bạn đọc.</p>
-        </div>
-        <button className="btn btn-ghost" onClick={load} disabled={loading}>
-          Tải lại
-        </button>
+        <h1>Trả sách</h1>
       </header>
+
+      {loadError && (
+        <div
+          className="card"
+          style={{
+            color: 'var(--late)',
+            marginBottom: 16,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          <span>{loadError}</span>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => load()} disabled={loading}>
+            Thử lại
+          </button>
+        </div>
+      )}
 
       {lastResult && (
         <div
@@ -515,14 +530,13 @@ export default function ReturnPage() {
                   )}
                 </div>
               )}
-              <p className="muted small">Tiền phạt chính thức do hệ thống tính khi xác nhận.</p>
             </div>
             <div className="modal-actions">
               <button className="btn btn-ghost" onClick={closeConfirm} disabled={busy}>
                 Huỷ
               </button>
               <button className="btn btn-primary" onClick={confirmReturn} disabled={!!dateError || busy}>
-                {busy ? 'Đang xử lý…' : 'Xác nhận trả'}
+                {busy ? 'Đang xử lý…' : 'Xác nhận trả toàn bộ phiếu'}
               </button>
             </div>
           </div>
