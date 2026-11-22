@@ -179,3 +179,22 @@ textarea {
   --warn: #c2410c;
   --warn-bg: #fff1e6;
 }
+
+/* ---- Vòng 2: thành phần dùng chung ---- */
+.badge-warn { background: var(--warn-bg); color: var(--warn); }
+.badge-neutral { background: var(--line); color: var(--ink); }
+
+.link-btn { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); cursor: pointer; text-align: left; }
+.link-btn:hover { text-decoration: underline; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.stat-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; text-align: left; font: inherit; color: var(--ink); }
+button.stat-card { cursor: pointer; }
+.stat-card.active { border-color: var(--accent); }
+.stat-label { font-size: 0.85rem; color: var(--muted); }
+.stat-value { font-size: 1.5rem; font-weight: 600; }
+
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+
+/* Phải viết liền hai class, nếu chỉ .modal-wide thì width 440px của .modal đè lên */
+.modal.modal-wide { width: min(900px, 100%); max-height: 90vh; overflow-y: auto; }
