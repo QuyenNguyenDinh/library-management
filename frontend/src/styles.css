@@ -103,3 +103,35 @@ h1 { font-size: 1.75rem; }
   .sidebar nav { display: flex; flex-wrap: wrap; gap: 4px; }
   .content { padding: 18px 14px; }
 }
+/* Sidebar: dua nut Dang xuat xuong cuoi */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.sidebar button.nav-link {
+  margin-top: auto;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--spine-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.sidebar button.nav-link:focus-visible {
+  outline: 2px solid var(--spine-ink);
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px) {
+  .sidebar {
+    min-height: auto;
+  }
+
+  .sidebar button.nav-link {
+    margin-top: 12px;
+  }
+}

@@ -23,8 +23,7 @@ export default function Sidebar() {
       <div className="brand">
         <span className="brand-mark">TV</span>
         <div>
-          <div className="brand-name">Thư viện sinh viên</div>
-          <div className="brand-sub">Nhóm 04</div>
+          <div className="brand-name">Quản lý thư viện</div>
         </div>
       </div>
 
@@ -42,16 +41,22 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div style={{ padding: '16px' }}>
-        <button
-          type="button"
-          className="btn btn-ghost"
-          onClick={handleLogout}
-          style={{ width: '100%' }}
-        >
-          Đăng xuất
-        </button>
-      </div>
+      <button
+        type="button"
+        className="nav-link"
+        onClick={handleLogout}
+        style={{
+          marginTop: 'auto',
+          width: '100%',
+          textAlign: 'left',
+          background: 'transparent',
+          border: 'none',
+          font: 'inherit',
+          cursor: 'pointer',
+        }}
+      >
+        Đăng xuất
+      </button>
     </aside>
   )
 }
