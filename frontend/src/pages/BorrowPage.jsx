@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { borrowApi } from '../api/borrowApi.js'
 import { formatDate, todayIso } from '../api/client.js'
 import ConfirmModal from '../components/ConfirmModal.jsx'
@@ -89,6 +89,7 @@ function StateBlock({ loading, error, onRetry, loadingText }) {
 export default function BorrowPage() {
   const toast = useToast()
   const navigate = useNavigate()
+  const [params, setParams] = useSearchParams()
 
   // Bạn đọc
   const [readers, setReaders] = useState([])
@@ -151,6 +152,27 @@ export default function BorrowPage() {
     loadReaders('')
     loadBooks('')
   }, [loadReaders, loadBooks])
+
+  // Chọn sẵn bạn đọc khi mở từ trang Bạn đọc: /borrow?readerId=RD001
+  const presetDone = useRef(false)
+  useEffect(() => {
+    const id = params.get('readerId')
+    if (!id || presetDone.current) return
+    presetDone.current = true
+    borrowApi
+      .getReader(id)
+      .then((r) => {
+        setReader(r)
+        if ((r.currentBorrowCount ?? 0) >= r.maxBorrowLimit) {
+          toast.error(`${r.fullName} đã mượn đủ hạn mức ${r.maxBorrowLimit} cuốn.`)
+        }
+      })
+      .catch((e) => toast.error(e.message))
+    const next = new URLSearchParams(params)
+    next.delete('readerId')
+    setParams(next, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Cập nhật lại tồn kho của các dòng trong phiếu mỗi khi danh sách sách được tải lại
   useEffect(() => {
@@ -320,11 +342,6 @@ export default function BorrowPage() {
     setBorrowDate(todayIso())
     setDuration(DEFAULT_DURATION)
     setDueDate(addDays(todayIso(), DEFAULT_DURATION))
-  }
-
-  const reloadAll = () => {
-    setServerIssue(null)
-    refreshData()
   }
 
   // ===================== Giao diện =====================
@@ -715,11 +732,7 @@ export default function BorrowPage() {
       <header className="page-head">
         <div>
           <h1>Mượn sách</h1>
-          <p className="muted">Chọn bạn đọc, thêm sách vào phiếu rồi bấm “Lập phiếu mượn”.</p>
         </div>
-        <button type="button" className="btn btn-ghost" onClick={reloadAll} disabled={readersLoading || booksLoading}>
-          Làm mới
-        </button>
       </header>
 
       <div style={ui.layout}>
