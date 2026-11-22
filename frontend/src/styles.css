@@ -174,3 +174,8 @@ textarea {
   .sidebar-footer { margin-top: 8px; }
   .content { padding: 18px 14px; }
 }
+
+:root {
+  --warn: #c2410c;
+  --warn-bg: #fff1e6;
+}
