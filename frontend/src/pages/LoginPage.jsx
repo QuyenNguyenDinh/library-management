@@ -55,43 +55,56 @@ export default function LoginPage() {
         maxWidth: 420,
         margin: '8vh auto',
         padding: 28,
-        background: '#fff',
-        borderRadius: 14,
-        border: '1px solid #e5e7eb',
+        background: 'var(--card)',
+        borderRadius: 'var(--radius)',
+        border: '1px solid var(--line)',
       }}
     >
       <h1>Đăng nhập</h1>
+
+      <p className="muted" style={{ marginTop: 8, marginBottom: 24 }}>
+        Hệ thống quản lý thư viện - Nhóm 04
+      </p>
 
       <form
         onSubmit={handleSubmit}
         style={{ display: 'grid', gap: 12 }}
       >
-        <label>
-          Tên đăng nhập
+        <label className="field">
+          <span>Tên đăng nhập</span>
           <input
+            className="input"
             required
+            autoComplete="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
         </label>
 
-        <label>
-          Mật khẩu
+        <label className="field">
+          <span>Mật khẩu</span>
           <input
+            className="input"
             required
             type="password"
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
         </label>
 
         {error && (
-          <p style={{ color: 'crimson' }}>
+          <p className="small fine" role="alert">
             {error}
           </p>
         )}
 
-        <button type="submit" disabled={busy}>
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={busy}
+          style={{ width: '100%', marginTop: 16 }}
+        >
           {busy ? 'Đang đăng nhập...' : 'Đăng nhập'}
         </button>
       </form>

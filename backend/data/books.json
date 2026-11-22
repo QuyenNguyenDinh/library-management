@@ -4,7 +4,7 @@
     "title": "Lập trình hướng đối tượng với Java",
     "author": "Phạm Văn Ất",
     "category": "Công nghệ thông tin",
-    "availableQuantity": 5,
+    "availableQuantity": 4,
     "price": 120000
   },
   {
@@ -20,7 +20,7 @@
     "title": "Cấu trúc dữ liệu và Giải thuật",
     "author": "Đỗ Xuân Lôi",
     "category": "Công nghệ thông tin",
-    "availableQuantity": 6,
+    "availableQuantity": 4,
     "price": 110000
   },
   {
@@ -44,7 +44,7 @@
     "title": "Kinh tế vi mô",
     "author": "N. Gregory Mankiw",
     "category": "Kinh tế",
-    "availableQuantity": 7,
+    "availableQuantity": 6,
     "price": 165000
   },
   {
@@ -60,7 +60,7 @@
     "title": "Nhà giả kim",
     "author": "Paulo Coelho",
     "category": "Văn học",
-    "availableQuantity": 10,
+    "availableQuantity": 9,
     "price": 79000
   },
   {

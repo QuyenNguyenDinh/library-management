@@ -67,11 +67,6 @@ export default function TicketsPage() {
       align: 'right'
     },
     {
-      key: 'overdue',
-      label: 'Quá hạn',
-      render: r => r.overdue ? 'Có' : 'Không'
-    },
-    {
       key: 'status',
       label: 'Trạng thái',
       render: r => {
