@@ -1,1 +1,30 @@
-[]
+
+[
+  {
+    "id": "RR001",
+    "ticketId": "TK005",
+    "readerId": "RD001",
+    "returnDate": "2026-11-07",
+    "overdueDays": 4,
+    "fineAmount": 20000,
+    "policyName": "Sinh viên thường (5.000đ/ngày)"
+  },
+  {
+    "id": "RR002",
+    "ticketId": "TK006",
+    "readerId": "RD003",
+    "returnDate": "2026-11-12",
+    "overdueDays": 4,
+    "fineAmount": 8000,
+    "policyName": "Giảng viên (2.000đ/ngày)"
+  },
+  {
+    "id": "RR003",
+    "ticketId": "TK007",
+    "readerId": "RD002",
+    "returnDate": "2026-11-10",
+    "overdueDays": 0,
+    "fineAmount": 0,
+    "policyName": "Sinh viên ưu tiên (3.000đ/ngày)"
+  }
+]
