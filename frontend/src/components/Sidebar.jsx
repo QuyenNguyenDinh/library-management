@@ -1,4 +1,3 @@
-
 import { NavLink, useNavigate } from 'react-router-dom'
 
 export const NAV_ITEMS = [
@@ -22,10 +21,7 @@ export default function Sidebar() {
     <aside className="sidebar">
       <div className="brand">
         <span className="brand-mark">TV</span>
-        <div>
-          <div className="brand-name">Thư viện sinh viên</div>
-          <div className="brand-sub">Nhóm 04</div>
-        </div>
+        <div className="brand-name">Quản lý thư viện</div>
       </div>
 
       <nav>
@@ -42,13 +38,9 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div style={{ padding: '16px' }}>
-        <button
-          type="button"
-          className="btn btn-ghost"
-          onClick={handleLogout}
-          style={{ width: '100%' }}
-        >
+      {/* Khung đáy menu: nút Đăng xuất sát đáy, kiểu giống một mục menu */}
+      <div className="sidebar-footer">
+        <button type="button" className="nav-button" onClick={handleLogout}>
           Đăng xuất
         </button>
       </div>
