@@ -1,93 +1,223 @@
 
-import { useCallback, useEffect, useState } from 'react'
-import { api, formatDate, formatMoney } from '../api/client.js'
-import DataTable from '../components/DataTable.jsx'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { api, formatDate, formatMoney, todayIso } from '../api/client.js'
 import { useToast } from '../components/Toast.jsx'
+import TicketDetailModal from '../components/TicketDetailModal.jsx'
+import {
+  indexById,
+  matches,
+  ticketBooksText,
+  ticketCopies,
+  ticketState,
+} from '../utils/libraryView.js'
+
+const PAGE_SIZE = 10
+
+const STATUS_OPTIONS = [
+  { value: '', label: 'Tất cả' },
+  { value: 'BORROWING', label: 'Đang mượn' },
+  { value: 'OVERDUE', label: 'Quá hạn' },
+  { value: 'RETURNED', label: 'Đã trả' },
+]
 
 export default function TicketsPage() {
-  const [rows, setRows] = useState([])
-  const [status, setStatus] = useState('')
-  const [readerId, setReaderId] = useState('')
-  const [searchReaderId, setSearchReaderId] = useState('')
-  const [loading, setLoading] = useState(false)
-
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const toast = useToast()
 
-  const load = useCallback(async (signal) => {
-    setLoading(true)
+  const [tickets, setTickets] = useState([])
+  const [readers, setReaders] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-    try {
-      const q = new URLSearchParams()
+  const [keyword, setKeyword] = useState('')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
+  const [page, setPage] = useState(1)
 
-      if (status) q.set('status', status)
-      if (searchReaderId) q.set('readerId', searchReaderId)
+  const statusParam = searchParams.get('status') || ''
+  const status = STATUS_OPTIONS.some(
+    (option) => option.value === statusParam
+  )
+    ? statusParam
+    : ''
 
-      const url = '/api/tickets' + (q.toString() ? '?' + q.toString() : '')
-      const data = await api.get(url)
-
-      if (!signal?.aborted) {
-        setRows(Array.isArray(data) ? data : [])
-      }
-    } catch (e) {
-      if (!signal?.aborted) {
-        toast.error(e.message || 'Không thể tải phiếu mượn')
-      }
-    } finally {
-      if (!signal?.aborted) setLoading(false)
-    }
-  }, [status, searchReaderId, toast])
+  const selectedId = searchParams.get('id')
+  const today = todayIso()
 
   useEffect(() => {
-    const controller = new AbortController()
-    load(controller.signal)
-    return () => controller.abort()
-  }, [load])
+    let active = true
 
-  function handleSearch(e) {
-    e.preventDefault()
-    setSearchReaderId(readerId.trim())
+    async function load() {
+      setLoading(true)
+      setError('')
+
+      try {
+        const [ticketData, readerData] = await Promise.all([
+          api.get('/api/tickets'),
+          api.get('/api/readers'),
+        ])
+
+        if (!active) return
+
+        setTickets(Array.isArray(ticketData) ? ticketData : [])
+        setReaders(Array.isArray(readerData) ? readerData : [])
+      } catch (err) {
+        if (!active) return
+
+        const message = err.message || 'Không thể tải dữ liệu'
+        setError(message)
+        toast.error(message)
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    load()
+
+    return () => {
+      active = false
+    }
+  }, [toast])
+
+  const readersById = useMemo(
+    () => indexById(readers),
+    [readers]
+  )
+
+  const ticketRows = useMemo(
+    () =>
+      tickets.map((ticket) => ({
+        ...ticket,
+        viewState: ticketState(ticket, today),
+        reader: readersById.get(ticket.readerId) || null,
+      })),
+    [tickets, readersById, today]
+  )
+
+  const counts = useMemo(
+    () => ({
+      ALL: ticketRows.length,
+      BORROWING: ticketRows.filter(
+        (ticket) =>
+          ticket.viewState.key === 'ON_TIME' ||
+          ticket.viewState.key === 'DUE_TODAY'
+      ).length,
+      OVERDUE: ticketRows.filter(
+        (ticket) => ticket.viewState.key === 'OVERDUE'
+      ).length,
+      RETURNED: ticketRows.filter(
+        (ticket) => ticket.viewState.key === 'RETURNED'
+      ).length,
+    }),
+    [ticketRows]
+  )
+
+  const filtered = useMemo(() => {
+    return ticketRows
+      .filter((ticket) => {
+        const key = ticket.viewState.key
+
+        if (status === 'BORROWING') {
+          if (key !== 'ON_TIME' && key !== 'DUE_TODAY') {
+            return false
+          }
+        } else if (status && key !== status) {
+          return false
+        }
+
+        if (
+          !matches(
+            keyword,
+            ticket.id,
+            ticket.readerId,
+            ticket.reader?.fullName,
+            ticketBooksText(ticket)
+          )
+        ) {
+          return false
+        }
+
+        if (fromDate && ticket.borrowDate < fromDate) {
+          return false
+        }
+
+        if (toDate && ticket.borrowDate > toDate) {
+          return false
+        }
+
+        return true
+      })
+      .sort((a, b) => {
+        const dateOrder = (b.borrowDate || '').localeCompare(
+          a.borrowDate || ''
+        )
+
+        if (dateOrder !== 0) return dateOrder
+
+        return String(b.id).localeCompare(String(a.id))
+      })
+  }, [ticketRows, status, keyword, fromDate, toDate])
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filtered.length / PAGE_SIZE)
+  )
+  const currentPage = Math.min(page, totalPages)
+
+  const visibleRows = filtered.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  )
+
+  const selectedTicket =
+    ticketRows.find((ticket) => ticket.id === selectedId) || null
+
+  const hasFilters = Boolean(
+    status || keyword || fromDate || toDate
+  )
+
+  function updateParams(changes) {
+    const next = new URLSearchParams(searchParams)
+
+    Object.entries(changes).forEach(([key, value]) => {
+      if (value) {
+        next.set(key, value)
+      } else {
+        next.delete(key)
+      }
+    })
+
+    setSearchParams(next)
   }
 
-  const columns = [
-    { key: 'id', label: 'Mã phiếu' },
-    { key: 'readerId', label: 'Mã bạn đọc' },
-    {
-      key: 'borrowDate',
-      label: 'Ngày mượn',
-      render: r => formatDate(r.borrowDate)
-    },
-    {
-      key: 'dueDate',
-      label: 'Hạn trả',
-      render: r => formatDate(r.dueDate)
-    },
-    {
-      key: 'daysBorrowed',
-      label: 'Số ngày mượn',
-      align: 'right'
-    },
-    {
-      key: 'status',
-      label: 'Trạng thái',
-      render: r => {
-        if (r.status === 'RETURNED') {
-          return <span className="badge">Đã trả</span>
-        }
+  function changeStatus(value) {
+    updateParams({ status: value })
+    setPage(1)
+  }
 
-        if (r.overdue) {
-          return <span className="badge badge-late">Quá hạn</span>
-        }
+  function clearFilters() {
+    setKeyword('')
+    setFromDate('')
+    setToDate('')
+    updateParams({ status: '' })
+    setPage(1)
+  }
 
-        return <span className="badge badge-ok">Trong hạn</span>
-      }
-    },
-    {
-      key: 'fineAmount',
-      label: 'Tiền phạt',
-      align: 'right',
-      render: r => formatMoney(r.fineAmount)
-    }
-  ]
+  function openDetail(ticket) {
+    updateParams({ id: ticket.id })
+  }
+
+  function closeDetail() {
+    updateParams({ id: '' })
+  }
+
+  function goToReturn(ticket) {
+    navigate(
+      `/return?ticketId=${encodeURIComponent(ticket.id)}`
+    )
+  }
 
   return (
     <section className="page">
@@ -95,50 +225,283 @@ export default function TicketsPage() {
         <h1>Phiếu mượn</h1>
       </header>
 
-      <form
-        onSubmit={handleSearch}
-        style={{
-          display: 'flex',
-          gap: 12,
-          margin: '16px 0',
-          flexWrap: 'wrap'
-        }}
-      >
+      <div className="stat-grid">
+        {[
+          {
+            key: '',
+            label: 'Tổng phiếu',
+            value: counts.ALL,
+          },
+          {
+            key: 'BORROWING',
+            label: 'Đang mượn',
+            value: counts.BORROWING,
+          },
+          {
+            key: 'OVERDUE',
+            label: 'Quá hạn',
+            value: counts.OVERDUE,
+          },
+          {
+            key: 'RETURNED',
+            label: 'Đã trả',
+            value: counts.RETURNED,
+          },
+        ].map((item) => (
+          <button
+            key={item.label}
+            type="button"
+            className={`stat-card ${
+              status === item.key ? 'active' : ''
+            }`}
+            onClick={() => changeStatus(item.key)}
+          >
+            <div className="stat-label">{item.label}</div>
+            <div className="stat-value">{item.value}</div>
+          </button>
+        ))}
+      </div>
+
+      <div className="toolbar" style={{ marginTop: 20 }}>
+        <input
+          className="input"
+          type="search"
+          placeholder="Tìm mã phiếu, bạn đọc, tên sách..."
+          value={keyword}
+          onChange={(event) => {
+            setKeyword(event.target.value)
+            setPage(1)
+          }}
+        />
+
         <select
           className="input"
           value={status}
-          onChange={e => setStatus(e.target.value)}
+          onChange={(event) =>
+            changeStatus(event.target.value)
+          }
         >
-          <option value="">Tất cả trạng thái</option>
-          <option value="BORROWING">Đang mượn</option>
-          <option value="OVERDUE">Quá hạn</option>
-          <option value="RETURNED">Đã trả</option>
+          {STATUS_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
         </select>
 
-        <input
-          className="input"
-          placeholder="Mã bạn đọc"
-          value={readerId}
-          onChange={e => setReaderId(e.target.value)}
-        />
+        <label>
+          Mượn từ
+          <input
+            className="input"
+            type="date"
+            value={fromDate}
+            onChange={(event) => {
+              setFromDate(event.target.value)
+              setPage(1)
+            }}
+          />
+        </label>
 
-        <button type="submit" className="btn btn-ghost">
-          Tìm
-        </button>
+        <label>
+          Đến
+          <input
+            className="input"
+            type="date"
+            value={toDate}
+            onChange={(event) => {
+              setToDate(event.target.value)
+              setPage(1)
+            }}
+          />
+        </label>
 
-        <button
-          type="button"
-          className="btn btn-ghost"
-          onClick={() => load()}
+        {hasFilters && (
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={clearFilters}
+          >
+            Xóa bộ lọc
+          </button>
+        )}
+      </div>
+
+      {error && (
+        <p style={{ color: 'var(--late, #b91c1c)' }}>
+          {error}
+        </p>
+      )}
+
+      <div className="table-wrap">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Mã phiếu</th>
+              <th>Bạn đọc</th>
+              <th>Sách</th>
+              <th>Ngày mượn</th>
+              <th>Hạn trả</th>
+              <th>Trạng thái</th>
+              <th>Tiền phạt</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={8} className="empty">
+                  Đang tải dữ liệu...
+                </td>
+              </tr>
+            ) : visibleRows.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="empty">
+                  Không có phiếu phù hợp
+                </td>
+              </tr>
+            ) : (
+              visibleRows.map((ticket) => (
+                <tr key={ticket.id}>
+                  <td>
+                    <button
+                      type="button"
+                      className="link-btn"
+                      onClick={() => openDetail(ticket)}
+                    >
+                      {ticket.id}
+                    </button>
+                  </td>
+
+                  <td>
+                    <strong>
+                      {ticket.reader?.fullName ||
+                        ticket.readerId}
+                    </strong>
+                    <div className="muted">
+                      {ticket.readerId}
+                    </div>
+                  </td>
+
+                  <td>
+                    {ticketBooksText(ticket)}
+                    <div className="muted">
+                      {ticketCopies(ticket)} cuốn
+                    </div>
+                  </td>
+
+                  <td>{formatDate(ticket.borrowDate)}</td>
+                  <td>{formatDate(ticket.dueDate)}</td>
+
+                  <td>
+                    <span className={ticket.viewState.badge}>
+                      {ticket.viewState.label}
+                    </span>
+                  </td>
+
+                  <td>
+                    {ticket.status === 'RETURNED'
+                      ? formatMoney(ticket.fineAmount)
+                      : '—'}
+                  </td>
+
+                  <td>
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: 8,
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => openDetail(ticket)}
+                      >
+                        Chi tiết
+                      </button>
+
+                      {ticket.status !== 'RETURNED' && (
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={() => goToReturn(ticket)}
+                        >
+                          Trả sách
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {!loading && filtered.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 12,
+            flexWrap: 'wrap',
+            marginTop: 16,
+          }}
         >
-          Tải lại
-        </button>
-      </form>
+          <span>
+            Hiển thị{' '}
+            {(currentPage - 1) * PAGE_SIZE + 1}–
+            {Math.min(
+              currentPage * PAGE_SIZE,
+              filtered.length
+            )}{' '}
+            trên {filtered.length} phiếu
+          </span>
 
-      <DataTable
-        columns={columns}
-        rows={rows}
-        loading={loading}
+          {totalPages > 1 && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}
+            >
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                disabled={currentPage === 1}
+                onClick={() =>
+                  setPage(currentPage - 1)
+                }
+              >
+                Trước
+              </button>
+
+              <span>
+                Trang {currentPage}/{totalPages}
+              </span>
+
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                disabled={currentPage === totalPages}
+                onClick={() =>
+                  setPage(currentPage + 1)
+                }
+              >
+                Sau
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <TicketDetailModal
+        ticket={selectedTicket}
+        reader={selectedTicket?.reader || null}
+        onClose={closeDetail}
+        onReturn={goToReturn}
       />
     </section>
   )
