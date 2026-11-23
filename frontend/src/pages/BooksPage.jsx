@@ -37,9 +37,6 @@ export default function BooksPage() {
   const [availabilityResult, setAvailabilityResult] = useState(null)
   const [checkingStock, setCheckingStock] = useState(false)
 
-  // Modal Nhập kho nhanh
-  const [restockBook, setRestockBook] = useState(null)
-  const [restockAmount, setRestockAmount] = useState(5)
 
   // Modal xác nhận xóa sách
   const [deletingBook, setDeletingBook] = useState(null)
@@ -180,38 +177,6 @@ export default function BooksPage() {
     }
   }
 
-  const handleOpenRestock = (book) => {
-    setRestockBook(book)
-    setRestockAmount(5)
-  }
-
-  const handleConfirmRestock = async (e) => {
-    e.preventDefault()
-    if (!restockBook) return
-    const added = Math.floor(Number(restockAmount))
-    if (Number.isNaN(added) || added <= 0) {
-      toast.error('Số lượng nhập thêm phải lớn hơn 0.')
-      return
-    }
-
-    setBusy(true)
-    try {
-      await bookApi.update(restockBook.id, {
-        title: restockBook.title,
-        author: restockBook.author,
-        category: restockBook.category,
-        availableQuantity: (restockBook.availableQuantity || 0) + added,
-        price: restockBook.price,
-      })
-      toast.success(`Đã nhập thêm ${added} cuốn cho "${restockBook.title}".`)
-      setRestockBook(null)
-      await loadBooks(keyword)
-    } catch (err) {
-      toast.error(err.message || 'Không thể nhập thêm kho.')
-    } finally {
-      setBusy(false)
-    }
-  }
 
   const handleConfirmDelete = async () => {
     if (!deletingBook) return
@@ -307,9 +272,6 @@ export default function BooksPage() {
       <header className="page-head">
         <div>
           <h1>Quản lý Sách Thư viện</h1>
-          <p className="muted">
-            Quản lý danh mục đầu sách, kiểm tra tồn kho theo thời gian thực, cập nhật giá bìa và nhập kho.
-          </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-ghost" onClick={handleExportCsv}>
@@ -358,7 +320,7 @@ export default function BooksPage() {
               setCurrentPage(1)
             }}
           >
-            Tất cả ({summary.totalTitles})
+            Tất cả
           </button>
           {categoryStats.map((cat) => (
             <button
@@ -370,7 +332,7 @@ export default function BooksPage() {
                 setCurrentPage(1)
               }}
             >
-              {cat.name} ({cat.titles} đầu · {cat.copies} cuốn)
+              {cat.name}
             </button>
           ))}
         </div>
@@ -458,7 +420,23 @@ export default function BooksPage() {
                   <td>
                     <button
                       type="button"
-                      className="btn btn-ghost btn-sm"
+                      title="Xem chi tiết sách"
+                      style={{
+                        background: 'none',
+                        border: 0,
+                        padding: 0,
+                        font: 'inherit',
+                        fontWeight: 500,
+                        color: 'var(--ink)',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.textDecoration = 'underline'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.textDecoration = 'none'
+                      }}
                       onClick={() => handleOpenDetailModal(b)}
                     >
                       {b.title}
@@ -483,12 +461,6 @@ export default function BooksPage() {
                         onClick={() => handleOpenDetailModal(b)}
                       >
                         Chi tiết
-                      </button>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => handleOpenRestock(b)}
-                      >
-                        + Nhập
                       </button>
                       <button
                         className="btn btn-ghost btn-sm"
@@ -628,17 +600,6 @@ export default function BooksPage() {
               )}
             </div>
             <div className="modal-actions">
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => {
-                  const target = detailBook
-                  setDetailBook(null)
-                  handleOpenRestock(target)
-                }}
-              >
-                + Nhập thêm kho
-              </button>
               <button type="button" className="btn btn-ghost" onClick={() => setDetailBook(null)}>
                 Đóng
               </button>
@@ -738,48 +699,6 @@ export default function BooksPage() {
         </div>
       )}
 
-      {/* Modal Nhập kho nhanh */}
-      {restockBook && (
-        <div className="modal-backdrop" onClick={() => !busy && setRestockBook(null)}>
-          <div className="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-            <h3>Nhập thêm sách vào kho</h3>
-            <form onSubmit={handleConfirmRestock}>
-              <div className="modal-body">
-                <p>
-                  Sách: <strong>{restockBook.title}</strong> (<span className="mono">{restockBook.id}</span>)
-                  <br />
-                  Tồn kho hiện tại: <strong>{restockBook.availableQuantity} cuốn</strong>
-                </p>
-                <label className="field">
-                  <span>Số lượng nhập thêm *</span>
-                  <input
-                    type="number"
-                    className="input"
-                    min="1"
-                    step="1"
-                    required
-                    value={restockAmount}
-                    onChange={(e) => setRestockAmount(e.target.value)}
-                  />
-                </label>
-              </div>
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => setRestockBook(null)}
-                  disabled={busy}
-                >
-                  Huỷ
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={busy}>
-                  {busy ? 'Đang cập nhật…' : 'Xác nhận nhập kho'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Modal xác nhận xóa sách */}
       <ConfirmModal
