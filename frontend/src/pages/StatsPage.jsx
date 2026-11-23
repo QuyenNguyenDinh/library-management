@@ -77,6 +77,7 @@ export default function StatsPage() {
   const [period, setPeriod] = useState('ALL')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
 
   const today = todayIso()
 
@@ -116,7 +117,7 @@ export default function StatsPage() {
     return () => {
       active = false
     }
-  }, [toast])
+  }, [toast, reloadKey])
 
   const stats = useMemo(() => {
     const start = periodStart(period, today)
@@ -259,8 +260,8 @@ export default function StatsPage() {
 
   const summaryCards = [
     { label: 'Tổng đầu sách', value: stats.totalBooks },
-    { label: 'Cuốn trong kho', value: stats.totalAvailable },
-    { label: 'Cuốn đang mượn', value: stats.borrowedCopies },
+    { label: 'Cuốn còn trong kho', value: stats.totalAvailable },
+    { label: 'Cuốn đang được mượn', value: stats.borrowedCopies },
     { label: 'Tổng bạn đọc', value: stats.totalReaders },
     { label: 'Phiếu quá hạn', value: stats.overdueCount },
     {
@@ -312,9 +313,12 @@ export default function StatsPage() {
       </header>
 
       {error && (
-        <p style={{ color: 'var(--late, #b91c1c)' }}>
-          {error}
-        </p>
+        <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <span style={{ color: 'var(--late)' }}>{error}</span>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setReloadKey((key) => key + 1)}>
+            Thử lại
+          </button>
+        </div>
       )}
 
       <div className="stat-grid" style={{ marginTop: 20 }}>
@@ -336,7 +340,7 @@ export default function StatsPage() {
         }}
       >
         <div className="card">
-          <h2>Phiếu mượn theo tháng</h2>
+          <strong>Phiếu mượn theo tháng</strong>
 
           {stats.monthly.length === 0 ? (
             <p>Chưa có dữ liệu trong khoảng thời gian này.</p>
@@ -389,7 +393,7 @@ export default function StatsPage() {
         </div>
 
         <div className="card">
-          <h2>Trạng thái phiếu</h2>
+          <strong>Trạng thái phiếu</strong>
 
           {stats.stateCounts.map((item) => (
             <BarRow
@@ -402,7 +406,7 @@ export default function StatsPage() {
         </div>
 
         <div className="card">
-          <h2>Top 5 sách được mượn</h2>
+          <strong>Sách được mượn nhiều nhất</strong>
 
           {stats.topBooks.length === 0 ? (
             <p>Chưa có dữ liệu.</p>
@@ -437,7 +441,7 @@ export default function StatsPage() {
               gap: 12,
             }}
           >
-            <h2>Phiếu quá hạn</h2>
+            <strong>Phiếu quá hạn</strong>
 
             <button
               type="button"
@@ -523,7 +527,7 @@ export default function StatsPage() {
               gap: 12,
             }}
           >
-            <h2>Sách sắp hết</h2>
+            <strong>Sách hết hoặc sắp hết ({stats.lowStock.length})</strong>
 
             <button
               type="button"
@@ -535,7 +539,7 @@ export default function StatsPage() {
           </div>
 
           {stats.lowStock.length === 0 ? (
-            <p>Không có sách sắp hết.</p>
+            <p>Không có sách hết hoặc sắp hết.</p>
           ) : (
             <div className="table-wrap">
               <table className="table">

@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api, formatDate, formatMoney, todayIso } from '../api/client.js'
 import { useToast } from '../components/Toast.jsx'
 import TicketDetailModal from '../components/TicketDetailModal.jsx'
+import Pagination, { paginate } from '../components/Pagination.jsx'
 import {
   indexById,
   matches,
@@ -15,8 +16,8 @@ import {
 const PAGE_SIZE = 10
 
 const STATUS_OPTIONS = [
-  { value: '', label: 'Tất cả' },
-  { value: 'BORROWING', label: 'Đang mượn' },
+  { value: '', label: 'Mọi trạng thái' },
+  { value: 'BORROWING', label: 'Đang mượn (trong hạn)' },
   { value: 'OVERDUE', label: 'Quá hạn' },
   { value: 'RETURNED', label: 'Đã trả' },
 ]
@@ -30,6 +31,7 @@ export default function TicketsPage() {
   const [readers, setReaders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
 
   const [keyword, setKeyword] = useState('')
   const [fromDate, setFromDate] = useState('')
@@ -79,7 +81,7 @@ export default function TicketsPage() {
     return () => {
       active = false
     }
-  }, [toast])
+  }, [toast, reloadKey])
 
   const readersById = useMemo(
     () => indexById(readers),
@@ -160,16 +162,7 @@ export default function TicketsPage() {
       })
   }, [ticketRows, status, keyword, fromDate, toDate])
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filtered.length / PAGE_SIZE)
-  )
-  const currentPage = Math.min(page, totalPages)
-
-  const visibleRows = filtered.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
-  )
+  const visibleRows = paginate(filtered, page, PAGE_SIZE)
 
   const selectedTicket =
     ticketRows.find((ticket) => ticket.id === selectedId) || null
@@ -234,7 +227,7 @@ export default function TicketsPage() {
           },
           {
             key: 'BORROWING',
-            label: 'Đang mượn',
+            label: 'Đang mượn (trong hạn)',
             value: counts.BORROWING,
           },
           {
@@ -257,7 +250,9 @@ export default function TicketsPage() {
             onClick={() => changeStatus(item.key)}
           >
             <div className="stat-label">{item.label}</div>
-            <div className="stat-value">{item.value}</div>
+            <div className={`stat-value ${item.key === 'OVERDUE' && item.value > 0 ? 'fine' : ''}`}>
+              {loading ? '…' : item.value}
+            </div>
           </button>
         ))}
       </div>
@@ -326,9 +321,12 @@ export default function TicketsPage() {
       </div>
 
       {error && (
-        <p style={{ color: 'var(--late, #b91c1c)' }}>
-          {error}
-        </p>
+        <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <span style={{ color: 'var(--late)' }}>{error}</span>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setReloadKey((key) => key + 1)}>
+            Thử lại
+          </button>
+        </div>
       )}
 
       <div className="table-wrap">
@@ -337,12 +335,12 @@ export default function TicketsPage() {
             <tr>
               <th>Mã phiếu</th>
               <th>Bạn đọc</th>
-              <th>Sách</th>
+              <th style={{ textAlign: 'right' }}>Số cuốn</th>
               <th>Ngày mượn</th>
               <th>Hạn trả</th>
               <th>Trạng thái</th>
-              <th>Tiền phạt</th>
-              <th>Thao tác</th>
+              <th style={{ textAlign: 'right' }}>Tiền phạt</th>
+              <th aria-label="Thao tác" />
             </tr>
           </thead>
 
@@ -356,7 +354,7 @@ export default function TicketsPage() {
             ) : visibleRows.length === 0 ? (
               <tr>
                 <td colSpan={8} className="empty">
-                  Không có phiếu phù hợp
+                  {hasFilters ? 'Không có phiếu nào khớp bộ lọc.' : 'Chưa có phiếu mượn nào.'}
                 </td>
               </tr>
             ) : (
@@ -365,7 +363,7 @@ export default function TicketsPage() {
                   <td>
                     <button
                       type="button"
-                      className="link-btn"
+                      className="link-btn mono"
                       onClick={() => openDetail(ticket)}
                     >
                       {ticket.id}
@@ -382,12 +380,7 @@ export default function TicketsPage() {
                     </div>
                   </td>
 
-                  <td>
-                    {ticketBooksText(ticket)}
-                    <div className="muted">
-                      {ticketCopies(ticket)} cuốn
-                    </div>
-                  </td>
+                  <td style={{ textAlign: 'right' }}>{ticketCopies(ticket)}</td>
 
                   <td>{formatDate(ticket.borrowDate)}</td>
                   <td>{formatDate(ticket.dueDate)}</td>
@@ -398,7 +391,7 @@ export default function TicketsPage() {
                     </span>
                   </td>
 
-                  <td>
+                  <td style={{ textAlign: 'right' }}>
                     {ticket.status === 'RETURNED'
                       ? formatMoney(ticket.fineAmount)
                       : '—'}
@@ -438,63 +431,14 @@ export default function TicketsPage() {
         </table>
       </div>
 
-      {!loading && filtered.length > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 12,
-            flexWrap: 'wrap',
-            marginTop: 16,
-          }}
-        >
-          <span>
-            Hiển thị{' '}
-            {(currentPage - 1) * PAGE_SIZE + 1}–
-            {Math.min(
-              currentPage * PAGE_SIZE,
-              filtered.length
-            )}{' '}
-            trên {filtered.length} phiếu
-          </span>
-
-          {totalPages > 1 && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-              }}
-            >
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                disabled={currentPage === 1}
-                onClick={() =>
-                  setPage(currentPage - 1)
-                }
-              >
-                Trước
-              </button>
-
-              <span>
-                Trang {currentPage}/{totalPages}
-              </span>
-
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                disabled={currentPage === totalPages}
-                onClick={() =>
-                  setPage(currentPage + 1)
-                }
-              >
-                Sau
-              </button>
-            </div>
-          )}
-        </div>
+      {!loading && (
+        <Pagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={filtered.length}
+          onChange={setPage}
+          unit="phiếu"
+        />
       )}
 
       <TicketDetailModal
