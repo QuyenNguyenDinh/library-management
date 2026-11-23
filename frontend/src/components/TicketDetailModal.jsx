@@ -1,4 +1,4 @@
-
+import { formatDate, formatMoney } from '../api/client'
 import { readerTypeLabel, ticketCopies, ticketState } from '../utils/libraryView'
 
 export default function TicketDetailModal({
@@ -15,8 +15,7 @@ export default function TicketDetailModal({
   const dailyRate = Number(reader?.finePolicy?.dailyRate || 0)
   const estimatedFine = state.lateDays * dailyRate
 
-  const money = (value) =>
-    `${Number(value || 0).toLocaleString('vi-VN')} đ`
+
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -58,9 +57,9 @@ export default function TicketDetailModal({
 
           <div>
             <h3>Thời gian</h3>
-            <p>Mượn: {ticket.borrowDate || '—'}</p>
-            <p>Hạn trả: {ticket.dueDate || '—'}</p>
-            <p>Ngày trả: {ticket.returnDate || 'Chưa trả'}</p>
+            <p>Mượn: {ticket.borrowDate ? formatDate(ticket.borrowDate) : '—'}</p>
+            <p>Hạn trả: {ticket.dueDate ? formatDate(ticket.dueDate) : '—'}</p>
+            <p>Ngày trả: {ticket.returnDate ? formatDate(ticket.returnDate) : 'Chưa trả'}</p>
           </div>
 
           <div>
@@ -68,7 +67,7 @@ export default function TicketDetailModal({
 
             {returned ? (
               <>
-                <p>{money(ticket.fineAmount)}</p>
+                <p>{formatMoney(ticket.fineAmount)}</p>
                 <p>
                   {state.lateDays > 0
                     ? `Trả trễ ${state.lateDays} ngày`
@@ -77,7 +76,7 @@ export default function TicketDetailModal({
               </>
             ) : state.key === 'OVERDUE' && dailyRate > 0 ? (
               <>
-                <p>{money(estimatedFine)}</p>
+               <p>{formatMoney(estimatedFine)}</p>
                 <p>Tạm tính nếu trả hôm nay</p>
               </>
             ) : (
@@ -88,8 +87,8 @@ export default function TicketDetailModal({
 
         <h3 style={{ marginTop: 20 }}>Danh sách sách</h3>
 
-        <div style={{ overflowX: 'auto' }}>
-          <table>
+       <div className="table-wrap">
+         <table className="table">
             <thead>
               <tr>
                 <th>Mã sách</th>
