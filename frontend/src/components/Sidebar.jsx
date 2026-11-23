@@ -38,9 +38,12 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Khung đáy menu: nút Đăng xuất sát đáy, kiểu giống một mục menu */}
       <div className="sidebar-footer">
-        <button type="button" className="nav-button" onClick={handleLogout}>
+        <button
+          type="button"
+          className="nav-link logout-btn"
+          onClick={handleLogout}
+        >
           Đăng xuất
         </button>
       </div>
