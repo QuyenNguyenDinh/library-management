@@ -1,21 +1,21 @@
 :root {
   color-scheme: light;
-  --paper: #f7f3ea;
+  --paper: #f7f5f0;
   --card: #ffffff;
-  --ink: #2b2f36;
+  --ink: #1f2933;
   --muted: #6b7280;
-  --line: #e3dccd;
-  --spine: #14284b;
-  --spine-ink: #eef2f9;
-  --accent: #2456a6;
-  --accent-hover: #1b4585;
+  --line: #e5e1d8;
+  --spine: #1e3a5f;
+  --spine-ink: #f1f5f9;
+  --accent: #1d4ed8;
+  --accent-hover: #1e40af;
   --accent-ink: #ffffff;
-  --ok: #2e7d4f;
-  --ok-bg: #e3f3e8;
-  --warn: #c4691a;
-  --warn-bg: #fbebd9;
-  --late: #b3402a;
-  --late-bg: #f8e1db;
+  --ok: #15803d;
+  --ok-bg: #e8f5ec;
+  --warn: #b45309;
+  --warn-bg: #fef3c7;
+  --late: #b91c1c;
+  --late-bg: #fdecec;
   --radius: 8px;
 }
 
@@ -103,7 +103,7 @@ h1 { font-size: 1.75rem; }
 .stat-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; text-align: left; font: inherit; color: var(--ink); }
 button.stat-card { cursor: pointer; }
 button.stat-card:hover { border-color: var(--muted); }
-.stat-card.active { border-color: var(--accent); }
+.stat-card.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .stat-label { font-size: 0.85rem; color: var(--muted); }
 .stat-value { font-size: 1.5rem; font-weight: 600; line-height: 1.3; }
 .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
