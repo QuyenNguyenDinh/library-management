@@ -269,27 +269,9 @@ export default function BooksPage() {
 
   return (
     <div className="page">
-      <style>{`
-        .book-title-link {
-          background: none;
-          border: none;
-          padding: 0;
-          font: inherit;
-          color: inherit;
-          cursor: pointer;
-          text-align: left;
-          text-decoration: none;
-        }
-        .book-title-link:hover {
-          text-decoration: underline;
-        }
-      `}</style>
       <header className="page-head">
         <div>
           <h1>Quản lý Sách Thư viện</h1>
-          <p className="muted">
-            Quản lý danh mục đầu sách, kiểm tra tồn kho theo thời gian thực và cập nhật giá bìa.
-          </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-ghost" onClick={handleExportCsv}>
@@ -438,7 +420,23 @@ export default function BooksPage() {
                   <td>
                     <button
                       type="button"
-                      className="book-title-link"
+                      title="Xem chi tiết sách"
+                      style={{
+                        background: 'none',
+                        border: 0,
+                        padding: 0,
+                        font: 'inherit',
+                        fontWeight: 500,
+                        color: 'var(--ink)',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.textDecoration = 'underline'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.textDecoration = 'none'
+                      }}
                       onClick={() => handleOpenDetailModal(b)}
                     >
                       {b.title}
